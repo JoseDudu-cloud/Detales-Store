@@ -43,11 +43,12 @@ const Catalog: React.FC = () => {
         <aside className="w-full md:w-64 space-y-10">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+            {/* Fixed: Removed recursive setSearchTerm call which caused a TypeScript error */}
             <input 
               type="text" 
               placeholder="Pesquisar..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(setSearchTerm(e.target.value))}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-full bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:border-[#D5BDAF]"
             />
           </div>
