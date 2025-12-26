@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { MemoryRouter as Router, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
 import { StoreProvider, useStore } from './store';
 
 // Pages
@@ -134,20 +133,18 @@ const PolicyPage: React.FC = () => {
 const App: React.FC = () => {
   return (
     <StoreProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Layout><Home /></Layout>} />
-          <Route path="/catalog" element={<Layout><Catalog /></Layout>} />
-          <Route path="/gifts" element={<Layout><Catalog /></Layout>} />
-          <Route path="/product/:id" element={<Layout><ProductDetail /></Layout>} />
-          <Route path="/cart" element={<Layout><Cart /></Layout>} />
-          <Route path="/policy/:type" element={<Layout><PolicyPage /></Layout>} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminGuard><AdminLayout><AdminDashboard /></AdminLayout></AdminGuard>} />
-          <Route path="/admin/products" element={<AdminGuard><AdminLayout><AdminProducts /></AdminLayout></AdminGuard>} />
-          <Route path="/admin/settings" element={<AdminGuard><AdminLayout><AdminSettings /></AdminLayout></AdminGuard>} />
-        </Routes>
-      </Router>
+      <Routes>
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/catalog" element={<Layout><Catalog /></Layout>} />
+        <Route path="/gifts" element={<Layout><Catalog /></Layout>} />
+        <Route path="/product/:id" element={<Layout><ProductDetail /></Layout>} />
+        <Route path="/cart" element={<Layout><Cart /></Layout>} />
+        <Route path="/policy/:type" element={<Layout><PolicyPage /></Layout>} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<AdminGuard><AdminLayout><AdminDashboard /></AdminLayout></AdminGuard>} />
+        <Route path="/admin/products" element={<AdminGuard><AdminLayout><AdminProducts /></AdminLayout></AdminGuard>} />
+        <Route path="/admin/settings" element={<AdminGuard><AdminLayout><AdminSettings /></AdminLayout></AdminGuard>} />
+      </Routes>
     </StoreProvider>
   );
 };
