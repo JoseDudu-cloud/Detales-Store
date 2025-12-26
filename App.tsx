@@ -7,7 +7,8 @@ import { StoreProvider, useStore } from './store';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
-import Catalog from './pages/Catalog';
+// Fix: Use lowercase to match existing file name casing and resolve conflict with pages/catalog.tsx
+import Catalog from './pages/catalog';
 import AdminDashboard from './pages/Admin/Dashboard';
 import AdminProducts from './pages/Admin/Products';
 import AdminSettings from './pages/Admin/Settings';
