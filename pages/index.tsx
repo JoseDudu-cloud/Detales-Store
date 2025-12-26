@@ -1,23 +1,24 @@
+
 import React from 'react';
 import Link from 'next/link';
 import { useStore } from '@/context/StoreContext';
-import { ArrowRight, Truck, ShieldCheck, Gift, Sparkles, ShoppingBag, Image as ImageLucide } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, Gift, Sparkles, ShoppingBag, Clock } from 'lucide-react';
 import { Product } from '@/types';
-import { useRouter } from 'next/router';
 
 export default function Home() {
-  const { settings, products } = useStore();
+  const { settings, products, addToCart } = useStore();
 
   const bestSellers = products.filter(p => p.tags.includes('Mais Vendido')).slice(0, 4);
   const newArrivals = products.filter(p => p.tags.includes('Novidade')).slice(0, 4);
 
   return (
     <div className="animate-fade-in bg-[#FDFBF9]">
-      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
+      {/* Hero Section */}
+      <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <img 
           src={settings.heroImageUrl} 
-          alt="Premium Jewelry" 
-          className="absolute inset-0 w-full h-full object-cover brightness-[0.85]"
+          alt="Banner" 
+          className="absolute inset-0 w-full h-full object-cover brightness-[0.85]" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
         <div className="relative z-10 text-center px-6 max-w-4xl text-white">
@@ -28,78 +29,67 @@ export default function Home() {
             </span>
           </div>
           <h1 className="text-4xl md:text-7xl font-serif mb-6 leading-tight drop-shadow-lg">{settings.headline}</h1>
-          <p className="text-lg md:text-xl text-white/90 mb-10 font-light max-w-2xl mx-auto tracking-wide">{settings.subheadline}</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <Link href="/catalog" className="bg-white text-[#212529] px-12 py-4 rounded-full uppercase tracking-[0.2em] text-[11px] font-bold hover:bg-[#212529] hover:text-white transition-all w-full sm:w-auto text-center shadow-xl">Ver Coleção</Link>
-            <Link href="/gifts" className="bg-transparent text-white px-12 py-4 rounded-full uppercase tracking-[0.2em] text-[11px] font-bold border border-white/50 hover:bg-white/10 transition-all w-full sm:w-auto text-center backdrop-blur-sm">Presentes</Link>
-          </div>
+          <p className="text-lg md:text-xl mb-10 font-light max-w-2xl mx-auto tracking-wide">{settings.subheadline}</p>
+          <Link href="/catalog" className="bg-white text-[#212529] px-12 py-4 rounded-full uppercase tracking-[0.2em] text-[11px] font-bold hover:bg-[#212529] hover:text-white transition-all shadow-xl">
+            Ver Coleção
+          </Link>
         </div>
       </section>
 
-      {settings.isLiveOn && (
-        <section className="bg-red-600 text-white py-4 px-6">
-          <div className="max-w-7xl mx-auto flex items-center justify-center space-x-8 animate-pulse">
-             <div className="flex items-center space-x-3 text-[10px] uppercase tracking-[0.3em] font-bold">
-               <div className="w-2 h-2 bg-white rounded-full"></div>
-               <span>Descontos exclusivos da LIVE ativados</span>
-             </div>
-          </div>
-        </section>
-      )}
-
+      {/* Trust Elements */}
       <section className="py-16 bg-white border-b border-gray-50">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
-          {settings.trustIcons.filter(t => t.enabled).map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center text-center group">
-              <div className="bg-[#FAF7F2] p-5 rounded-full mb-6 group-hover:bg-[#D5BDAF] transition-colors">
-                {item.icon === 'Shipping' && <Truck className="text-[#D5BDAF] group-hover:text-white" size={28} strokeWidth={1.5} />}
-                {item.icon === 'Gift' && <Gift className="text-[#D5BDAF] group-hover:text-white" size={28} strokeWidth={1.5} />}
-                {item.icon === 'Shield' && <ShieldCheck className="text-[#D5BDAF] group-hover:text-white" size={28} strokeWidth={1.5} />}
-              </div>
-              <span className="uppercase tracking-[0.25em] text-[10px] font-bold text-gray-800">{item.text}</span>
-            </div>
-          ))}
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+          <div className="space-y-4">
+            <div className="bg-[#FAF7F2] p-5 rounded-full w-fit mx-auto"><Truck className="text-[#D5BDAF]" size={28} /></div>
+            <span className="uppercase tracking-widest text-[10px] font-bold">Envio Express</span>
+          </div>
+          <div className="space-y-4">
+            <div className="bg-[#FAF7F2] p-5 rounded-full w-fit mx-auto"><Gift className="text-[#D5BDAF]" size={28} /></div>
+            <span className="uppercase tracking-widest text-[10px] font-bold">Mimo na Caixinha</span>
+          </div>
+          <div className="space-y-4">
+            <div className="bg-[#FAF7F2] p-5 rounded-full w-fit mx-auto"><ShieldCheck className="text-[#D5BDAF]" size={28} /></div>
+            <span className="uppercase tracking-widest text-[10px] font-bold">Garantia Premium</span>
+          </div>
         </div>
       </section>
 
+      {/* Best Sellers */}
       <section className="py-24 px-6 max-w-7xl mx-auto">
-        <h2 className="text-4xl font-serif mb-16">Favoritos Detalhes</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
-          {bestSellers.map(product => <ProductCard key={product.id} product={product} />)}
+        <div className="text-center md:text-left mb-16">
+          <span className="text-[#D5BDAF] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 block">Os Mais Desejados</span>
+          <h2 className="text-4xl font-serif">Favoritos Detalhes</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {bestSellers.map(product => (
+            <ProductCard key={product.id} product={product} onAdd={() => addToCart(product.id)} />
+          ))}
         </div>
       </section>
     </div>
   );
 }
 
-export const ProductCard = ({ product }: { product: Product }) => {
-  const { addToCart } = useStore();
-  const router = useRouter();
-
+function ProductCard({ product, onAdd }: { product: Product, onAdd: () => void }) {
   return (
-    <div className="group block relative cursor-pointer" onClick={() => router.push(`/product/${product.id}`)}>
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 mb-6 rounded-3xl border border-gray-100 shadow-sm">
-        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
-        <div className="absolute top-4 left-4 flex flex-col space-y-2 z-10">
-          {product.tags.map((tag, i) => (
-            <span key={i} className={`text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-1.5 rounded-full shadow-lg ${tag === 'Novidade' ? 'bg-white text-black' : 'bg-[#D5BDAF] text-white'}`}>
-              {tag}
-            </span>
-          ))}
+    <div className="group block relative">
+      <Link href={`/product/${product.id}`}>
+        <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 mb-6 rounded-3xl border border-gray-100">
+          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+          <div className="absolute top-4 left-4 flex flex-col space-y-2">
+            {product.tags.map((tag, i) => (
+              <span key={i} className="text-[8px] uppercase tracking-widest font-bold px-3 py-1 bg-white rounded-full shadow-sm">{tag}</span>
+            ))}
+          </div>
         </div>
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 flex items-center justify-center z-20">
-            <button 
-                onClick={(e) => { e.stopPropagation(); addToCart(product.id); }}
-                className="bg-white text-[#212529] p-4 rounded-full shadow-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all hover:bg-[#212529] hover:text-white"
-            >
-                <ShoppingBag size={20} strokeWidth={1.5} />
-            </button>
-        </div>
-      </div>
-      <div className="text-center px-2">
-        <h3 className="text-[12px] uppercase tracking-[0.15em] font-medium text-gray-500 mb-1 group-hover:text-black">{product.name}</h3>
-        <p className="text-sm font-bold text-gray-900 tracking-wider font-serif">R$ {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+      </Link>
+      <div className="text-center">
+        <h3 className="text-[11px] uppercase tracking-widest text-gray-500 mb-1">{product.name}</h3>
+        <p className="font-bold font-serif">R$ {product.price.toFixed(2)}</p>
+        <button onClick={onAdd} className="mt-4 bg-gray-50 p-3 rounded-full hover:bg-[#D5BDAF] hover:text-white transition">
+          <ShoppingBag size={16} />
+        </button>
       </div>
     </div>
   );
-};
+}

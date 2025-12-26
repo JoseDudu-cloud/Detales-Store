@@ -1,9 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { StoreSettings, Product, AnalyticsData, CartItem, AdminUser, Tag } from '../types';
 import { INITIAL_SETTINGS, INITIAL_PRODUCTS } from '../constants';
 
-// Notification interface for the toast notification system
 interface Notification {
   id: number;
   message: string;
@@ -18,15 +16,12 @@ interface StoreContextType {
   addToCart: (productId: string) => void;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, qty: number) => void;
-  clearCart: () => void;
   analytics: AnalyticsData;
   admin: AdminUser | null;
   login: (u: string, p: string) => Promise<boolean>;
   logout: () => void;
-  showNotification: (msg: string) => void;
-  // Fix for property 'notifications' does not exist error
   notifications: Notification[];
-  // Fix for property 'recordEvent' does not exist error
+  showNotification: (msg: string) => void;
   recordEvent: (type: 'view' | 'cart' | 'checkout', pId?: string) => void;
 }
 
@@ -39,44 +34,46 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [cart, setCart] = useState<CartItem[]>([]);
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [analytics] = useState<AnalyticsData>({
-    visitors: 1240, 
-    productViews: 4500, 
-    addedToCart: 580, 
-    whatsappCheckouts: 120, 
-    abandonedCarts: 460, 
-    revenue: 24500
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
+    visitors: 1240, productViews: 4500, addedToCart: 580, whatsappCheckouts: 120, abandonedCarts: 460, revenue: 24500
   });
 
   useEffect(() => {
     setMounted(true);
+    const savedSettings = localStorage.getItem('detalhes_settings');
+    const savedProducts = localStorage.getItem('detalhes_products');
     const savedCart = localStorage.getItem('detalhes_cart');
     const savedAdmin = sessionStorage.getItem('detalhes_admin');
+    
+    if (savedSettings) setSettings(JSON.parse(savedSettings));
+    if (savedProducts) setProducts(JSON.parse(savedProducts));
     if (savedCart) setCart(JSON.parse(savedCart));
     if (savedAdmin) setAdmin(JSON.parse(savedAdmin));
   }, []);
 
   useEffect(() => {
     if (mounted) {
+      localStorage.setItem('detalhes_settings', JSON.stringify(settings));
+      localStorage.setItem('detalhes_products', JSON.stringify(products));
       localStorage.setItem('detalhes_cart', JSON.stringify(cart));
     }
-  }, [cart, mounted]);
+  }, [settings, products, cart, mounted]);
 
   const addToCart = (productId: string) => {
+    const product = products.find(p => p.id === productId);
     setCart(prev => {
       const existing = prev.find(i => i.productId === productId);
       if (existing) return prev.map(i => i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i);
       return [...prev, { productId, quantity: 1 }];
     });
-    // Track cart addition event
-    recordEvent('cart', productId);
+    if (product) showNotification(`${product.name} na sacola ✨`);
   };
 
   const removeFromCart = (pId: string) => setCart(prev => prev.filter(i => i.productId !== pId));
-  const updateCartQuantity = (pId: string, q: number) => setCart(prev => prev.map(i => i.productId === pId ? { ...i, quantity: q } : i));
-  const clearCart = () => setCart([]);
+  const updateCartQuantity = (pId: string, q: number) => setCart(prev => prev.map(i => i.productId === pId ? { ...i, quantity: Math.max(0, q) } : i));
 
   const login = async (u: string, p: string) => {
+    // Login simplificado para admin/admin
     if (u === 'admin' && p === 'admin') {
       const user: AdminUser = { id: '1', username: 'admin', role: 'superadmin', createdAt: Date.now(), passwordHash: '' };
       setAdmin(user);
@@ -94,21 +91,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const showNotification = (message: string) => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, message }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 3000);
+    setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 3000);
   };
 
-  const recordEvent = (type: 'view' | 'cart' | 'checkout', pId?: string) => {
-    // Simple event logging for analytics tracking
-    console.debug(`Event recorded: ${type}`, pId);
+  const recordEvent = (type: string, pId?: string) => {
+    console.log('Event recorded:', type, pId);
   };
 
   return (
     <StoreContext.Provider value={{
       settings, setSettings, products, setProducts, cart, addToCart,
-      removeFromCart, updateCartQuantity, clearCart, analytics,
-      admin, login, logout, showNotification, notifications, recordEvent
+      removeFromCart, updateCartQuantity, analytics, admin, login, logout,
+      notifications, showNotification, recordEvent
     }}>
       {children}
     </StoreContext.Provider>
