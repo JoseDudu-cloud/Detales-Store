@@ -41,15 +41,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
     shipping: 'Enviamos para todo o Brasil via Correios e Transportadoras. O prazo médio de postagem é de 24h úteis após a confirmação do pagamento.',
     returns: 'Você tem até 7 dias após o recebimento para solicitar a troca ou devolução sem custos, desde que a peça esteja sem sinais de uso.',
     warranty: 'Nossas peças possuem garantia de 1 ano no banho de Ouro 18k e garantia vitalícia contra defeitos de fabricação.'
-  },
-  faqs: [
-    { id: '1', question: 'Qual o prazo de entrega?', answer: 'Nossos pedidos são postados em até 24h úteis. O prazo de entrega varia de acordo com sua região, podendo ser calculado no checkout do WhatsApp.', enabled: true },
-    { id: '2', question: 'As peças possuem garantia?', answer: 'Sim! Oferecemos 1 ano de garantia no banho de Ouro 18k e garantia vitalícia contra defeitos de fabricação.', enabled: true }
-  ],
-  testimonials: [
-    { id: '1', name: 'Juliana Silva', content: 'As peças são impecáveis, o brilho é surreal e a embalagem é um presente à parte. Virei fã!', rating: 5, enabled: true },
-    { id: '2', name: 'Mariana Costa', content: 'Atendimento maravilhoso e entrega super rápida. Recomendo muito!', rating: 5, enabled: true }
-  ]
+  }
 };
 
 export const INITIAL_PRODUCTS: Product[] = [

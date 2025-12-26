@@ -31,22 +31,6 @@ export interface AdminUser {
   createdAt: number;
 }
 
-export interface FAQItem {
-  id: string;
-  question: string;
-  answer: string;
-  enabled: boolean;
-}
-
-export interface Testimonial {
-  id: string;
-  name: string;
-  content: string;
-  image?: string;
-  rating: number;
-  enabled: boolean;
-}
-
 export interface StoreSettings {
   isLiveOn: boolean;
   logoType: 'text' | 'image';
@@ -79,8 +63,6 @@ export interface StoreSettings {
   };
   contactEmail: string;
   footerContent: string;
-  faqs: FAQItem[];
-  testimonials: Testimonial[];
 }
 
 export interface AnalyticsData {
