@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useStore } from '@/context/StoreContext';
-import { Search, SlidersHorizontal } from 'lucide-react';
+// Added ShoppingBag to the imports from lucide-react
+import { Search, SlidersHorizontal, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Catalog() {
