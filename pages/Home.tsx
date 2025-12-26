@@ -1,12 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
-import { ArrowRight, Star, Truck, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Image as ImageLucide } from 'lucide-react';
+import { ArrowRight, Star, Truck, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Image as ImageLucide, ChevronDown, ChevronUp, Quote } from 'lucide-react';
 import { Product } from '../types';
 
 const Home: React.FC = () => {
   const { settings, products } = useStore();
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
 
   const bestSellers = products.filter(p => p.tags.includes('Mais Vendido')).slice(0, 4);
   const newArrivals = products.filter(p => p.tags.includes('Novidade')).slice(0, 4);
@@ -51,7 +52,7 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Conversion Banner: Live Urgency (Y) - ONLY IF LIVE IS ON */}
+      {/* Conversion Banner: Live Urgency */}
       {settings.isLiveOn && (
         <section className="bg-red-600 text-white py-4 px-6 overflow-hidden">
           <div className="max-w-7xl mx-auto flex items-center justify-center space-x-8 animate-pulse">
@@ -103,33 +104,61 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Emotional Banner (X) */}
-      <section className="py-24 bg-[#FAF7F2] relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-16 md:gap-24">
-          <div className="w-full md:w-5/12 relative">
-             <img 
-               src="https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&h=1000&q=80" 
-               alt="Woman wearing jewelry detail" 
-               className="rounded-3xl shadow-2xl relative z-10"
-             />
-             <div className="absolute -top-10 -left-10 w-40 h-40 border-[20px] border-[#D5BDAF]/20 rounded-full z-0"></div>
+      {/* Testimonials Section */}
+      {settings.testimonials?.filter(t => t.enabled).length > 0 && (
+        <section className="py-24 bg-[#FAF7F2] px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16 space-y-4">
+              <span className="text-[#D5BDAF] text-[10px] font-bold uppercase tracking-[0.3em]">Experiências Reais</span>
+              <h2 className="text-4xl font-serif">O Que Nossas Clientes Dizem</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {settings.testimonials.filter(t => t.enabled).map((t) => (
+                <div key={t.id} className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col space-y-4">
+                  <div className="flex text-[#D5BDAF]">
+                    {[...Array(t.rating)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
+                  </div>
+                  <p className="text-gray-600 italic leading-relaxed text-sm">"{t.content}"</p>
+                  <div className="flex items-center space-x-4 pt-4 border-t border-gray-50">
+                    {t.image && <img src={t.image} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-gray-800">{t.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="w-full md:w-7/12 space-y-10">
-            <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.3em]">Beleza & Confiança</span>
-            <h2 className="text-4xl md:text-5xl font-serif leading-tight text-gray-900">Peças que contam a sua história.</h2>
-            <p className="text-gray-500 leading-relaxed text-lg font-light">
-              Cada semijoia Detalhes é selecionada para proporcionar mais que um acessório: um momento de autocuidado e elegância.
-            </p>
-            <Link 
-              to="/catalog" 
-              className="inline-flex items-center space-x-4 bg-[#212529] text-white px-10 py-5 rounded-full font-bold uppercase tracking-[0.25em] text-[11px] hover:bg-black transition-all shadow-xl"
-            >
-              <span>Descubra sua próxima peça</span>
-              <ArrowRight size={16} />
-            </Link>
+        </section>
+      )}
+
+      {/* FAQ Section */}
+      {settings.faqs?.filter(f => f.enabled).length > 0 && (
+        <section className="py-24 bg-white px-6">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-16 space-y-4">
+              <span className="text-[#D5BDAF] text-[10px] font-bold uppercase tracking-[0.3em]">Dúvidas Frequentes</span>
+              <h2 className="text-4xl font-serif">FAQ</h2>
+            </div>
+            <div className="space-y-4">
+              {settings.faqs.filter(f => f.enabled).map((f) => (
+                <div key={f.id} className="border border-gray-100 rounded-2xl overflow-hidden">
+                  <button 
+                    onClick={() => setOpenFaq(openFaq === f.id ? null : f.id)}
+                    className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-sm font-bold text-gray-800 tracking-wide">{f.question}</span>
+                    {openFaq === f.id ? <ChevronUp size={20} className="text-[#D5BDAF]" /> : <ChevronDown size={20} className="text-gray-400" />}
+                  </button>
+                  {openFaq === f.id && (
+                    <div className="p-6 bg-gray-50 text-gray-600 text-sm leading-relaxed animate-fade-in">
+                      {f.answer}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* New Arrivals */}
       <section className="py-24 px-6 max-w-7xl mx-auto">
