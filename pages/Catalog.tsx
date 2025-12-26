@@ -47,7 +47,8 @@ const Catalog: React.FC = () => {
               type="text" 
               placeholder="Pesquisar..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(setSearchTerm(e.target.value))}
+              // Fix: Removed nested setSearchTerm call which was returning void
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-full bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:border-[#D5BDAF]"
             />
           </div>
