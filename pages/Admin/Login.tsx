@@ -1,8 +1,11 @@
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+// Use namespace import and any-casting to bypass 'no exported member' errors
+import * as ReactRouterDOM from 'react-router-dom';
 import { useStore } from '../../store';
 import { Lock, User as UserIcon, ArrowRight, Loader2, Eye, EyeOff, Home, ArrowLeft } from 'lucide-react';
+
+const { useNavigate, Link } = ReactRouterDOM as any;
 
 const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');

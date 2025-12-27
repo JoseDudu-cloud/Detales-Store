@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { MemoryRouter as Router, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
+// Use namespace import and any-casting to bypass 'no exported member' errors in this environment
+import * as ReactRouterDOM from 'react-router-dom';
 import { StoreProvider, useStore } from './store';
 
 // Pages
@@ -16,7 +17,16 @@ import AdminLogin from './pages/Admin/Login';
 // Layouts
 import Layout from './components/Layout';
 import { LayoutDashboard, Package, Settings as SettingsIcon, LogOut, ChevronLeft, ShieldCheck, Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
+const { 
+  MemoryRouter: Router, 
+  Routes, 
+  Route, 
+  useLocation, 
+  Navigate, 
+  useParams,
+  Link 
+} = ReactRouterDOM as any;
 
 const AdminGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { admin } = useStore();

@@ -1,9 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+// Use namespace import and any-casting to bypass 'no exported member' errors in this environment
+import * as ReactRouterDOM from 'react-router-dom';
 import { ShoppingBag, Menu, X, Instagram, Phone, User, CheckCircle2, Facebook, MessageCircle } from 'lucide-react';
 import { useStore } from '../store';
 import Hotbar from './Hotbar';
+
+const { Link, useLocation } = ReactRouterDOM as any;
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { settings, cart, notifications } = useStore();

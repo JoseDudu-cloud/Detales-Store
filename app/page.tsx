@@ -1,0 +1,1 @@
+// Removido para restaurar SPA original

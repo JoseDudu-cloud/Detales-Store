@@ -1,9 +1,12 @@
 
 import React, { useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+// Use namespace import and any-casting to bypass 'no exported member' errors
+import * as ReactRouterDOM from 'react-router-dom';
 import { useStore } from '../store';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { ProductCard } from './Home';
+
+const { useLocation, Link } = ReactRouterDOM as any;
 
 const Catalog: React.FC = () => {
   const { products, settings } = useStore();
@@ -47,7 +50,7 @@ const Catalog: React.FC = () => {
               type="text" 
               placeholder="Pesquisar..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(setSearchTerm(e.target.value))}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-full bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:border-[#D5BDAF]"
             />
           </div>

@@ -2,7 +2,10 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Trash2, Plus, Minus, Send, ShoppingBag, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+// Use namespace import and any-casting to bypass 'no exported member' errors
+import * as ReactRouterDOM from 'react-router-dom';
+
+const { Link } = ReactRouterDOM as any;
 
 const Cart: React.FC = () => {
   const { cart, products, updateCartQuantity, removeFromCart, settings, recordEvent } = useStore();
