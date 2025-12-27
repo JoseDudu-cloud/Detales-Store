@@ -5,7 +5,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { useStore } from '../store';
 import { ChevronRight, ShoppingBag, Shield, Truck, Package, Heart, Star, Sparkles, Image as ImageLucide } from 'lucide-react';
 
-const { useParams, useNavigate } = ReactRouterDOM as any;
+const { useParams, useNavigate, Link } = ReactRouterDOM as any;
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams();
@@ -35,9 +35,9 @@ const ProductDetail: React.FC = () => {
     <div className="animate-fade-in max-w-7xl mx-auto px-6 py-12 md:py-20">
       {/* Breadcrumbs */}
       <nav className="flex items-center space-x-3 text-[10px] uppercase tracking-[0.25em] text-gray-400 mb-16">
-        <a href="/" className="hover:text-black transition">Início</a>
+        <Link to="/" className="hover:text-black transition">Início</Link>
         <ChevronRight size={10} />
-        <a href="/catalog" className="hover:text-black transition">Catálogo</a>
+        <Link to="/catalog" className="hover:text-black transition">Catálogo</Link>
         <ChevronRight size={10} />
         <span className="text-black font-bold">{product.name}</span>
       </nav>

@@ -5,12 +5,13 @@ import { Trash2, Plus, Minus, Send, ShoppingBag, ArrowLeft, ShieldCheck, Sparkle
 // Use namespace import and any-casting to bypass 'no exported member' errors
 import * as ReactRouterDOM from 'react-router-dom';
 
-const { Link } = ReactRouterDOM as any;
+const { Link, useNavigate } = ReactRouterDOM as any;
 
 const Cart: React.FC = () => {
   const { cart, products, updateCartQuantity, removeFromCart, settings, recordEvent } = useStore();
   const [isLive, setIsLive] = useState(false);
   const [liveCode, setLiveCode] = useState('');
+  const navigate = useNavigate();
 
   const cartItems = cart.map(item => ({
     ...item,
@@ -20,6 +21,15 @@ const Cart: React.FC = () => {
   const total = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
   const freeShippingProgress = Math.min((total / settings.freeShippingThreshold) * 100, 100);
   const missingForFreeShipping = Math.max(settings.freeShippingThreshold - total, 0);
+
+  const handleBack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/catalog');
+    }
+  };
 
   const handleCheckout = () => {
     recordEvent('checkout');
@@ -49,9 +59,12 @@ const Cart: React.FC = () => {
         <p className="text-gray-400 mb-12 text-center max-w-sm uppercase tracking-[0.2em] text-[11px] font-light leading-relaxed">
           Sua curadoria pessoal está vazia. Explore nossas joias e encontre o detalhe perfeito para você.
         </p>
-        <Link to="/catalog" className="bg-[#212529] text-white px-14 py-5 rounded-full uppercase tracking-[0.3em] text-[11px] font-bold shadow-xl hover:bg-black hover:scale-105 transition-all duration-300">
+        <button 
+          onClick={() => navigate('/catalog')}
+          className="bg-[#212529] text-white px-14 py-5 rounded-full uppercase tracking-[0.3em] text-[11px] font-bold shadow-xl hover:bg-black hover:scale-105 transition-all duration-300"
+        >
           Voltar às Coleções
-        </Link>
+        </button>
       </div>
     );
   }
@@ -59,7 +72,11 @@ const Cart: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-6 py-16 md:py-24 animate-fade-in">
       <div className="flex items-center justify-between mb-16">
-        <Link to="/catalog" className="flex items-center space-x-3 text-[10px] uppercase tracking-[0.25em] font-bold text-gray-400 hover:text-black transition">
+        <Link 
+          to="/catalog" 
+          onClick={handleBack}
+          className="flex items-center space-x-3 text-[10px] uppercase tracking-[0.25em] font-bold text-gray-400 hover:text-black transition"
+        >
           <ArrowLeft size={14} />
           <span>Continuar Escolhendo</span>
         </Link>

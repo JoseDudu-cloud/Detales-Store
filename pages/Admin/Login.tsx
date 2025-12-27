@@ -16,6 +16,15 @@ const AdminLogin: React.FC = () => {
   const { login } = useStore();
   const navigate = useNavigate();
 
+  const handleBackToStore = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
@@ -47,6 +56,7 @@ const AdminLogin: React.FC = () => {
         {/* Back to Home Link */}
         <Link 
           to="/" 
+          onClick={handleBackToStore}
           className="absolute top-8 left-10 flex items-center space-x-2 text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 hover:text-black transition-colors group"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
@@ -127,22 +137,18 @@ const AdminLogin: React.FC = () => {
         </form>
         
         <div className="mt-12 text-center">
-          <Link to="/" className="text-[10px] text-gray-400 uppercase tracking-widest hover:text-black transition-colors flex items-center justify-center space-x-2">
+          <button 
+            onClick={handleBackToStore}
+            className="text-[10px] text-gray-400 uppercase tracking-widest hover:text-black transition-colors flex items-center justify-center space-x-2 w-full"
+          >
             <Home size={12} />
             <span>Voltar para a Loja</span>
-          </Link>
+          </button>
           <p className="mt-8 text-[9px] text-gray-300 uppercase tracking-[0.4em] font-medium">Security-First Protocol</p>
         </div>
       </div>
     </div>
   );
 };
-
-const ShieldCheck = ({size, className}: {size: number, className: string}) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-        <path d="m9 12 2 2 4-4"></path>
-    </svg>
-)
 
 export default AdminLogin;

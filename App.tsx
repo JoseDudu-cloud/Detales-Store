@@ -25,6 +25,7 @@ const {
   useLocation, 
   Navigate, 
   useParams,
+  useNavigate,
   Link 
 } = ReactRouterDOM as any;
 
@@ -38,12 +39,22 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { logout } = useStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navItems = [
     { label: 'Painel', path: '/admin', icon: LayoutDashboard },
     { label: 'Produtos', path: '/admin/products', icon: Package },
     { label: 'Configurações', path: '/admin/settings', icon: SettingsIcon },
   ];
+
+  const handleBackToStore = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white">
@@ -64,7 +75,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         ))}
       </nav>
       <div className="p-8 border-t border-gray-50 space-y-2">
-        <Link to="/" className="flex items-center space-x-4 px-8 py-5 text-[10px] uppercase tracking-[0.25em] font-bold text-gray-400 hover:text-black transition-all rounded-full hover:bg-gray-50">
+        <Link 
+          to="/" 
+          onClick={handleBackToStore}
+          className="flex items-center space-x-4 px-8 py-5 text-[10px] uppercase tracking-[0.25em] font-bold text-gray-400 hover:text-black transition-all rounded-full hover:bg-gray-50"
+        >
           <ChevronLeft size={16} />
           <span>Loja</span>
         </Link>
