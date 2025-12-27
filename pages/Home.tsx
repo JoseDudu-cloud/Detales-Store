@@ -1,18 +1,59 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 // Use namespace import and any-casting to bypass 'no exported member' errors
 import * as ReactRouterDOM from 'react-router-dom';
 import { useStore } from '../store';
-import { ArrowRight, Star, Truck, ShieldCheck, Gift, Clock, Sparkles, ShoppingBag, Image as ImageLucide } from 'lucide-react';
-import { Product } from '../types';
+import { 
+  ArrowRight, Star, Truck, ShieldCheck, Heart, Clock, 
+  Sparkles, ShoppingBag, Image as ImageLucide, MessageCircle, ChevronDown, Plus, Minus, Instagram
+} from 'lucide-react';
+import { Product, InstagramPost } from '../types';
 
 const { Link, useNavigate } = ReactRouterDOM as any;
 
 const Home: React.FC = () => {
   const { settings, products } = useStore();
+  const [apiPosts, setApiPosts] = useState<InstagramPost[]>([]);
+  const [loadingInstagram, setLoadingInstagram] = useState(false);
 
   const bestSellers = products.filter(p => p.tags.includes('Mais Vendido')).slice(0, 4);
   const newArrivals = products.filter(p => p.tags.includes('Novidade')).slice(0, 4);
+  const activeTestimonials = settings.testimonials?.filter(t => t.enabled) || [];
+  const activeFaqs = settings.faqs?.filter(f => f.enabled) || [];
+  const instagram = settings.instagramSection || { enabled: false, posts: [] };
+
+  useEffect(() => {
+    const fetchInstagramFeed = async () => {
+      if (!instagram.enabled || !instagram.useApi || !instagram.accessToken || !instagram.userId) return;
+      
+      setLoadingInstagram(true);
+      try {
+        const url = `https://graph.instagram.com/${instagram.userId}/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&access_token=${instagram.accessToken}`;
+        const response = await fetch(url);
+        const json = await response.json();
+        
+        if (json.data) {
+          const filtered = json.data
+            .filter((post: any) => post.media_type === 'IMAGE' || post.media_type === 'CAROUSEL_ALBUM')
+            .slice(0, instagram.fetchCount || 8)
+            .map((post: any) => ({
+              id: post.id,
+              imageUrl: post.media_url,
+              permalink: post.permalink
+            }));
+          setApiPosts(filtered);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Instagram API posts:", error);
+      } finally {
+        setLoadingInstagram(false);
+      }
+    };
+
+    fetchInstagramFeed();
+  }, [instagram.enabled, instagram.useApi, instagram.accessToken, instagram.userId, instagram.fetchCount]);
+
+  const displayPosts = (instagram.useApi && apiPosts.length > 0) ? apiPosts : instagram.posts;
 
   return (
     <div className="animate-fade-in bg-[#FDFBF9]">
@@ -71,19 +112,43 @@ const Home: React.FC = () => {
         </section>
       )}
 
-      {/* Trust Elements */}
-      <section className="py-16 bg-white border-b border-gray-50">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
-          {settings.trustIcons.filter(t => t.enabled).map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center text-center group">
-              <div className="bg-[#FAF7F2] p-5 rounded-full mb-6 group-hover:bg-[#D5BDAF] transition-colors duration-500">
-                {item.icon === 'Shipping' && <Truck className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.5} />}
-                {item.icon === 'Gift' && <Gift className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.5} />}
-                {item.icon === 'Shield' && <ShieldCheck className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.5} />}
+      {/* Premium Value Propositions Section */}
+      <section className="py-20 bg-[#FAF9F6] border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3">
+            {/* Column 1: Qualidade */}
+            <div className="flex flex-col items-center text-center px-6 py-12 md:px-8 md:border-r border-gray-100 last:border-r-0 last:border-b-0 border-b md:border-b-0 group">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-50 group-hover:scale-110 group-hover:bg-[#D5BDAF] transition-all duration-500">
+                <ShieldCheck className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.2} />
               </div>
-              <span className="uppercase tracking-[0.25em] text-[10px] font-bold text-gray-800">{item.text}</span>
+              <h3 className="font-serif text-xl mb-3 text-gray-900">Qualidade Premium</h3>
+              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-medium">
+                Banhado a ouro 18k e prata 925, com verniz de proteção antialérgico.
+              </p>
             </div>
-          ))}
+            
+            {/* Column 2: Curadoria */}
+            <div className="flex flex-col items-center text-center px-6 py-12 md:px-8 md:border-r border-gray-100 last:border-r-0 last:border-b-0 border-b md:border-b-0 group">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-50 group-hover:scale-110 group-hover:bg-[#D5BDAF] transition-all duration-500">
+                <Heart className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.2} />
+              </div>
+              <h3 className="font-serif text-xl mb-3 text-gray-900">Curadoria Feminina</h3>
+              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-medium">
+                Peças pensadas por mulheres para mulheres, unindo tendência e atemporalidade.
+              </p>
+            </div>
+            
+            {/* Column 3: Atendimento */}
+            <div className="flex flex-col items-center text-center px-6 py-12 md:px-8 last:border-r-0 last:border-b-0 group">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-50 group-hover:scale-110 group-hover:bg-[#D5BDAF] transition-all duration-500">
+                <Sparkles className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.2} />
+              </div>
+              <h3 className="font-serif text-xl mb-3 text-gray-900">Atendimento Pessoal</h3>
+              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-medium">
+                Suporte dedicado no WhatsApp para te ajudar a escolher a peça perfeita.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -148,6 +213,125 @@ const Home: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      {activeTestimonials.length > 0 && (
+        <section className="py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.4em]">Depoimentos</span>
+              <h2 className="text-3xl md:text-4xl font-serif mt-4">O que elas dizem sobre nossos detalhes</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {activeTestimonials.map(t => (
+                <div key={t.id} className="bg-[#FDFBF9] p-10 rounded-[2.5rem] shadow-sm border border-gray-50 flex flex-col items-center text-center">
+                  <div className="flex text-[#D5BDAF] mb-6">
+                    {Array.from({ length: t.rating }).map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
+                  </div>
+                  <p className="text-gray-600 font-serif italic text-lg leading-relaxed mb-8">"{t.text}"</p>
+                  <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-900">— {t.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Instagram Showcase Section */}
+      {instagram.enabled && (
+        <section className="py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.4em] block mb-4">Comunidade</span>
+              <h2 className="text-3xl md:text-4xl font-serif mb-4">{instagram.title}</h2>
+              <a 
+                href={instagram.profileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 hover:text-black transition-colors"
+              >
+                {instagram.username}
+              </a>
+            </div>
+            
+            {loadingInstagram ? (
+              <div className="flex justify-center py-20">
+                <div className="w-8 h-8 border-4 border-[#D5BDAF] border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <div className={`grid grid-cols-2 md:grid-cols-${Math.min(displayPosts.length, 4)} lg:grid-cols-4 gap-4 md:gap-6 mb-16`}>
+                {displayPosts.map((post) => (
+                  <a 
+                    key={post.id} 
+                    href={post.permalink || instagram.profileUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="group relative aspect-square overflow-hidden rounded-[2rem] shadow-sm"
+                  >
+                    <img 
+                      src={post.imageUrl} 
+                      alt="Instagram Post" 
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                    />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Instagram size={24} className="text-white" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-center">
+              <a 
+                href={instagram.profileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="bg-black text-white px-12 py-5 rounded-full uppercase tracking-[0.2em] text-[10px] font-bold hover:bg-[#D5BDAF] transition-all shadow-xl"
+              >
+                {instagram.buttonText}
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* FAQ Section */}
+      {activeFaqs.length > 0 && (
+        <section className="py-24 bg-[#FAF9F6]">
+          <div className="max-w-3xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.4em]">Suporte</span>
+              <h2 className="text-3xl md:text-4xl font-serif mt-4">Dúvidas Frequentes</h2>
+            </div>
+            <div className="space-y-4">
+              {activeFaqs.map(f => (
+                <FAQItemComponent key={f.id} item={f} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+};
+
+const FAQItemComponent: React.FC<{ item: any }> = ({ item }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all shadow-sm">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-8 py-6 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-sm font-serif font-bold text-gray-900 tracking-wide">{item.question}</span>
+        {isOpen ? <Minus size={16} className="text-[#D5BDAF]" /> : <Plus size={16} className="text-[#D5BDAF]" />}
+      </button>
+      {isOpen && (
+        <div className="px-8 pb-8 animate-fade-in">
+          <p className="text-gray-500 text-xs leading-relaxed tracking-wide font-light">{item.answer}</p>
+        </div>
+      )}
     </div>
   );
 };

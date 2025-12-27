@@ -31,6 +31,27 @@ export interface AdminUser {
   createdAt: number;
 }
 
+export interface Testimonial {
+  id: string;
+  name: string;
+  text: string;
+  rating: number;
+  enabled: boolean;
+}
+
+export interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+  enabled: boolean;
+}
+
+export interface InstagramPost {
+  id: string;
+  imageUrl: string;
+  permalink?: string;
+}
+
 export interface StoreSettings {
   isLiveOn: boolean;
   logoType: 'text' | 'image';
@@ -47,6 +68,20 @@ export interface StoreSettings {
   freeShippingThreshold: number;
   hotbarMessages: { id: string; text: string; enabled: boolean }[];
   trustIcons: { icon: string; text: string; enabled: boolean }[];
+  testimonials: Testimonial[];
+  faqs: FAQItem[];
+  instagramSection: {
+    enabled: boolean;
+    useApi: boolean;
+    accessToken: string;
+    userId: string;
+    fetchCount: number;
+    title: string;
+    username: string;
+    profileUrl: string;
+    buttonText: string;
+    posts: InstagramPost[];
+  };
   categories: string[];
   tags: string[];
   socialLinks: {

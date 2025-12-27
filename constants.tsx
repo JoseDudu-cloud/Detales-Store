@@ -30,6 +30,33 @@ export const INITIAL_SETTINGS: StoreSettings = {
     { icon: 'Gift', text: 'Mimo na Caixinha', enabled: true },
     { icon: 'Shield', text: 'Garantia Premium', enabled: true }
   ],
+  testimonials: [
+    { id: '1', name: 'Ana Beatriz', text: 'As peças são impecáveis. O brilho do banho é muito superior ao que eu esperava. Com certeza voltarei a comprar.', rating: 5, enabled: true },
+    { id: '2', name: 'Carla Silveira', text: 'Atendimento nota mil via WhatsApp. Me ajudaram a escolher o presente perfeito e chegou em 2 dias.', rating: 5, enabled: true },
+    { id: '3', name: 'Mariana Costa', text: 'Embalagem linda e cheirosa! Um detalhe que faz toda a diferença.', rating: 5, enabled: true }
+  ],
+  faqs: [
+    { id: '1', question: 'As peças possuem garantia?', answer: 'Sim! Todas as nossas semijoias possuem 1 ano de garantia no banho e garantia vitalícia contra defeitos de fabricação.', enabled: true },
+    { id: '2', question: 'Qual o prazo de envio?', answer: 'Realizamos postagens diárias. Após a confirmação do pagamento, seu pedido é enviado em até 24 horas úteis.', enabled: true },
+    { id: '3', question: 'As peças são antialérgicas?', answer: 'Sim, nossas peças recebem uma camada de verniz de proteção antialérgico e são livres de níquel.', enabled: true }
+  ],
+  instagramSection: {
+    enabled: true,
+    useApi: false,
+    accessToken: '',
+    userId: '',
+    fetchCount: 8,
+    title: 'Siga-nos no Instagram',
+    username: '@detalhesstore',
+    profileUrl: 'https://instagram.com/detalhesstore',
+    buttonText: 'Ver Perfil no Instagram',
+    posts: [
+      { id: 'p1', imageUrl: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&q=80' },
+      { id: 'p2', imageUrl: 'https://images.unsplash.com/photo-1599643478123-242f151145f0?auto=format&fit=crop&w=400&q=80' },
+      { id: 'p3', imageUrl: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=400&q=80' },
+      { id: 'p4', imageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=400&q=80' }
+    ]
+  },
   socialLinks: {
     instagram: 'https://instagram.com/detalhesstore',
     facebook: 'https://facebook.com/detalhesstore',

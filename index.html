@@ -3,24 +3,29 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Detalhes Store | Semijoias Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --hotbar-height: 32px;
+        }
         body {
             font-family: 'Inter', sans-serif;
             scroll-behavior: smooth;
             -webkit-tap-highlight-color: transparent;
+            min-width: 320px;
+            overflow-x: hidden;
         }
         h1, h2, h3, .font-serif {
             font-family: 'Playfair Display', serif;
         }
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 4px;
+            height: 4px;
         }
         ::-webkit-scrollbar-track {
             background: #f1f1f1;
@@ -32,6 +37,13 @@
 
         .scrollbar-hide::-webkit-scrollbar {
             display: none;
+        }
+
+        /* Melhoria de legibilidade em telas pequenas */
+        @media (max-width: 640px) {
+            html {
+                font-size: 14px;
+            }
         }
 
         @keyframes slide-up {
@@ -56,6 +68,22 @@
         }
         .animate-slide-right {
           animation: slide-right 0.3s ease-out forwards;
+        }
+
+        /* Prevenção de quebra de layout em botões com texto longo */
+        button, a {
+            word-break: keep-all;
+            white-space: nowrap;
+        }
+        
+        /* Ajuste para inputs em iOS para evitar zoom automático */
+        input[type="text"], input[type="number"], textarea {
+            font-size: 16px !important;
+        }
+        @media (min-width: 768px) {
+            input[type="text"], input[type="number"], textarea {
+                font-size: 14px !important;
+            }
         }
     </style>
 <script type="importmap">

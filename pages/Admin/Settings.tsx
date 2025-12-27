@@ -6,7 +6,7 @@ import {
   UserPlus, Radio, Plus, Eye, EyeOff, MessageSquare, 
   Tag as TagIcon, Layout, Image as ImageLucide, Link as LinkIcon, X, Lock, User, 
   Instagram, Facebook, Mail, Globe, Info, Truck, Pencil, Sparkles, ArrowLeft, Upload,
-  Phone, MessageCircle, Code
+  Phone, MessageCircle, Code, HelpCircle, Star, Key, Hash
 } from 'lucide-react';
 
 const AdminSettings: React.FC = () => {
@@ -81,16 +81,16 @@ const AdminSettings: React.FC = () => {
 
   const addItem = (field: 'categories' | 'tags', value: string, resetter: (v: string) => void) => {
     if (!value) return;
-    if (localSettings[field].includes(value)) {
+    if ((localSettings[field] as string[]).includes(value)) {
       showNotification("Este item já existe.");
       return;
     }
-    updateField(field, [...localSettings[field], value]);
+    updateField(field, [...(localSettings[field] as string[]), value]);
     resetter('');
   };
 
   const removeItem = (field: 'categories' | 'tags', value: string) => {
-    updateField(field, localSettings[field].filter(item => item !== value));
+    updateField(field, (localSettings[field] as string[]).filter(item => item !== value));
   };
 
   const addHotbarMessage = () => {
@@ -102,6 +102,43 @@ const AdminSettings: React.FC = () => {
     };
     updateField('hotbarMessages', [...localSettings.hotbarMessages, newMessage]);
     setNewHotbarText('');
+  };
+
+  const addTestimonial = () => {
+    const newT = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: 'Nome da Cliente',
+      text: 'Depoimento incrível...',
+      rating: 5,
+      enabled: true
+    };
+    updateField('testimonials', [...(localSettings.testimonials || []), newT]);
+  };
+
+  const removeTestimonial = (id: string) => {
+    updateField('testimonials', localSettings.testimonials.filter(t => t.id !== id));
+  };
+
+  const updateTestimonial = (id: string, updates: any) => {
+    updateField('testimonials', localSettings.testimonials.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
+  const addFaq = () => {
+    const newF = {
+      id: Math.random().toString(36).substr(2, 9),
+      question: 'Nova Pergunta?',
+      answer: 'Resposta detalhada...',
+      enabled: true
+    };
+    updateField('faqs', [...(localSettings.faqs || []), newF]);
+  };
+
+  const removeFaq = (id: string) => {
+    updateField('faqs', localSettings.faqs.filter(f => f.id !== id));
+  };
+
+  const updateFaq = (id: string, updates: any) => {
+    updateField('faqs', localSettings.faqs.map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
   const startEditingHotbar = (msg: {id: string, text: string}) => {
@@ -139,21 +176,47 @@ const AdminSettings: React.FC = () => {
     }
   };
 
+  // Instagram Management
+  const addInstagramPost = () => {
+    const newPost = { id: Math.random().toString(36).substr(2, 9), imageUrl: '' };
+    updateField('instagramSection', {
+      ...localSettings.instagramSection,
+      posts: [...(localSettings.instagramSection?.posts || []), newPost]
+    });
+  };
+
+  const updateInstagramPost = (id: string, url: string) => {
+    updateField('instagramSection', {
+      ...localSettings.instagramSection,
+      posts: localSettings.instagramSection.posts.map(p => p.id === id ? { ...p, imageUrl: url } : p)
+    });
+  };
+
+  const removeInstagramPost = (id: string) => {
+    updateField('instagramSection', {
+      ...localSettings.instagramSection,
+      posts: localSettings.instagramSection.posts.filter(p => p.id !== id)
+    });
+  };
+
   const menuItems = [
     { label: 'Logo', id: 'sec-logo' },
     { label: 'Banner', id: 'sec-banner' },
-    { label: 'WhatsApp & Checkout', id: 'sec-checkout' },
-    { label: 'Redes Sociais', id: 'sec-social' },
-    { label: 'Live Commerce', id: 'sec-live' },
+    { label: 'WhatsApp', id: 'sec-checkout' },
+    { label: 'Redes', id: 'sec-social' },
+    { label: 'Live', id: 'sec-live' },
     { label: 'Institucional', id: 'sec-inst' },
     { label: 'Hotbar', id: 'sec-hotbar' },
-    { label: 'Taxonomia', id: 'sec-taxonomy' },
-    { label: 'Segurança', id: 'sec-security' }
+    { label: 'Depoimentos', id: 'sec-testimonials' },
+    { label: 'Instagram', id: 'sec-instagram' },
+    { label: 'FAQ', id: 'sec-faq' },
+    { label: 'Tags', id: 'sec-taxonomy' },
+    { label: 'Acessos', id: 'sec-security' }
   ];
 
   return (
-    <div className="max-w-5xl space-y-12 pb-24 animate-fade-in relative px-1 w-full overflow-x-hidden">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+    <div className="max-w-5xl space-y-12 pb-32 animate-fade-in relative px-1 w-full overflow-x-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-serif">Configurações</h1>
           <p className="text-[10px] md:text-sm text-gray-500 uppercase tracking-widest mt-1 italic">Gestão completa da marca</p>
@@ -167,15 +230,15 @@ const AdminSettings: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 md:gap-12">
-        {/* Navigation - Sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 md:gap-12 relative">
+        {/* Navigation - optimized for mobile */}
         <div className="lg:col-span-1">
-            <nav className="sticky top-20 md:top-32 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible space-x-2 lg:space-x-0 lg:space-y-1 bg-white p-4 rounded-[2rem] md:rounded-[2.5rem] border border-gray-100 shadow-sm scrollbar-hide">
+            <nav className="sticky top-20 md:top-32 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible space-x-2 lg:space-x-0 lg:space-y-1 bg-white/80 backdrop-blur-md p-3 md:p-4 rounded-full md:rounded-[2.5rem] border border-gray-100 shadow-sm scrollbar-hide z-30 mx-4 md:mx-0">
                 {menuItems.map((item) => (
                     <button 
                       key={item.id} 
                       onClick={() => scrollToSection(item.id)}
-                      className="whitespace-nowrap flex-shrink-0 text-left px-4 lg:px-6 py-3 lg:py-4 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] uppercase tracking-widest font-bold text-gray-400 hover:text-black hover:bg-[#FAF7F2] transition-all border border-transparent"
+                      className="whitespace-nowrap flex-shrink-0 text-left px-5 md:px-6 py-2.5 md:py-4 rounded-full md:rounded-2xl text-[9px] md:text-[10px] uppercase tracking-widest font-bold text-gray-500 bg-gray-50 md:bg-transparent hover:text-black hover:bg-[#FAF7F2] transition-all border border-transparent shadow-sm md:shadow-none"
                     >
                         {item.label}
                     </button>
@@ -183,10 +246,10 @@ const AdminSettings: React.FC = () => {
             </nav>
         </div>
 
-        <div className="lg:col-span-3 space-y-8 md:space-y-12">
+        <div className="lg:col-span-3 space-y-8 md:space-y-12 px-4 md:px-0">
           
           {/* Logo Section */}
-          <section id="sec-logo" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-logo" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Layout size={20} className="text-[#D5BDAF]" /><span>Logo da Loja</span></h2>
             <div className="space-y-6">
                 <div className="flex p-1.5 bg-gray-50 rounded-full w-full max-w-sm mx-auto md:mx-0">
@@ -221,7 +284,7 @@ const AdminSettings: React.FC = () => {
           </section>
 
           {/* Banner Section */}
-          <section id="sec-banner" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-banner" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><ImageLucide size={20} className="text-[#D5BDAF]" /><span>Banner Principal</span></h2>
             <div className="space-y-6">
                 <div className="relative aspect-video rounded-[2rem] overflow-hidden bg-gray-100 border border-gray-100 shadow-inner group">
@@ -249,8 +312,8 @@ const AdminSettings: React.FC = () => {
             </div>
           </section>
 
-          {/* Checkout & WhatsApp (RESTAURADO) */}
-          <section id="sec-checkout" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-24 md:scroll-mt-32">
+          {/* Checkout & WhatsApp */}
+          <section id="sec-checkout" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><MessageCircle size={20} className="text-[#25D366]" /><span>Checkout & WhatsApp</span></h2>
             
             <div className="space-y-8">
@@ -296,7 +359,7 @@ const AdminSettings: React.FC = () => {
           </section>
 
           {/* Redes Sociais */}
-          <section id="sec-social" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-social" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Globe size={20} className="text-[#D5BDAF]" /><span>Redes Sociais</span></h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-2">
@@ -319,7 +382,7 @@ const AdminSettings: React.FC = () => {
           </section>
 
           {/* Live Commerce */}
-          <section id="sec-live" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-live" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm scroll-mt-36 md:scroll-mt-32">
              <div className="flex justify-between items-center">
                 <h2 className="text-xl font-serif flex items-center space-x-3"><Radio size={20} className={localSettings.isLiveOn ? 'text-red-500' : 'text-gray-300'} /><span>Live Commerce Ativa?</span></h2>
                 <button onClick={() => updateField('isLiveOn', !localSettings.isLiveOn)} className={`w-14 h-7 rounded-full relative transition-all ${localSettings.isLiveOn ? 'bg-red-500 shadow-lg shadow-red-200' : 'bg-gray-200'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings.isLiveOn ? 'right-1' : 'left-1'}`} /></button>
@@ -327,7 +390,7 @@ const AdminSettings: React.FC = () => {
           </section>
 
           {/* Institucional Section */}
-          <section id="sec-inst" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-inst" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Info size={20} className="text-[#D5BDAF]" /><span>Políticas & Institucional</span></h2>
             <div className="space-y-8">
                 {[
@@ -352,7 +415,7 @@ const AdminSettings: React.FC = () => {
           </section>
 
           {/* Hotbar */}
-          <section id="sec-hotbar" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-hotbar" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif border-b border-gray-50 pb-6 flex items-center space-x-3"><MessageSquare size={20} className="text-[#D5BDAF]" /><span>Hotbar de Avisos</span></h2>
             <div className="flex flex-col sm:flex-row gap-4">
                 <input type="text" value={newHotbarText} onChange={(e) => setNewHotbarText(e.target.value)} placeholder="Novo Aviso..." className="flex-grow px-8 py-4 rounded-full bg-gray-50 border outline-none text-xs uppercase focus:bg-white shadow-inner" />
@@ -388,8 +451,224 @@ const AdminSettings: React.FC = () => {
             </div>
           </section>
 
+          {/* Testimonials Management */}
+          <section id="sec-testimonials" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
+            <div className="flex justify-between items-center border-b border-gray-50 pb-6">
+              <h2 className="text-xl font-serif flex items-center space-x-3"><Star size={20} className="text-[#D5BDAF]" /><span>Depoimentos de Clientes</span></h2>
+              <button onClick={addTestimonial} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
+            </div>
+            <div className="space-y-6">
+                {(localSettings.testimonials || []).map((t) => (
+                    <div key={t.id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
+                        <div className="flex justify-between items-start">
+                            <input 
+                                type="text" 
+                                value={t.name} 
+                                onChange={(e) => updateTestimonial(t.id, { name: e.target.value })}
+                                className="bg-transparent font-bold uppercase tracking-widest text-[10px] outline-none border-b border-gray-200 pb-1"
+                                placeholder="Nome da Cliente"
+                            />
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => updateTestimonial(t.id, { enabled: !t.enabled })} className={`p-2 transition-colors ${t.enabled ? 'text-[#D5BDAF]' : 'text-gray-300'}`}>{t.enabled ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
+                                <button onClick={() => removeTestimonial(t.id)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={14}/></button>
+                            </div>
+                        </div>
+                        <textarea 
+                            value={t.text} 
+                            onChange={(e) => updateTestimonial(t.id, { text: e.target.value })}
+                            className="w-full bg-white p-4 rounded-2xl text-[11px] outline-none h-20 resize-none shadow-inner italic"
+                            placeholder="Texto do depoimento..."
+                        />
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] uppercase font-bold text-gray-400">Avaliação:</span>
+                            <div className="flex gap-1">
+                                {[1,2,3,4,5].map(v => (
+                                    <button key={v} onClick={() => updateTestimonial(t.id, { rating: v })} className={`${t.rating >= v ? 'text-[#D5BDAF]' : 'text-gray-200'}`}><Star size={12} fill="currentColor"/></button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+          </section>
+
+          {/* Instagram Management */}
+          <section id="sec-instagram" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
+            <div className="flex justify-between items-center border-b border-gray-50 pb-6">
+              <h2 className="text-xl font-serif flex items-center space-x-3"><Instagram size={20} className="text-[#D5BDAF]" /><span>Instagram Showcase</span></h2>
+              <button 
+                onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, enabled: !localSettings.instagramSection.enabled })} 
+                className={`w-14 h-7 rounded-full relative transition-all ${localSettings.instagramSection.enabled ? 'bg-[#D5BDAF] shadow-lg shadow-[#D5BDAF]/20' : 'bg-gray-200'}`}
+              >
+                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings.instagramSection.enabled ? 'right-1' : 'left-1'}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl mb-4">
+                  <div className="flex items-center gap-3">
+                    <Radio size={16} className={localSettings.instagramSection.useApi ? 'text-[#D5BDAF]' : 'text-gray-400'} />
+                    <span className="text-[10px] uppercase font-bold tracking-widest">Usar Instagram Graph API (Automático)</span>
+                  </div>
+                  <button 
+                    onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, useApi: !localSettings.instagramSection.useApi })} 
+                    className={`w-10 h-5 rounded-full relative transition-all ${localSettings.instagramSection.useApi ? 'bg-[#D5BDAF]' : 'bg-gray-300'}`}
+                  >
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${localSettings.instagramSection.useApi ? 'right-0.5' : 'left-0.5'}`} />
+                  </button>
+                </div>
+
+                {localSettings.instagramSection.useApi && (
+                  <div className="p-6 border border-gray-100 rounded-[2rem] space-y-6 bg-[#FAF7F2]/30">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Key size={12}/> Access Token</label>
+                        <input 
+                          type="password" 
+                          value={localSettings.instagramSection.accessToken} 
+                          onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, accessToken: e.target.value })} 
+                          className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm"
+                          placeholder="Instagram Graph API Token"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><User size={12}/> User ID</label>
+                        <input 
+                          type="text" 
+                          value={localSettings.instagramSection.userId} 
+                          onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, userId: e.target.value })} 
+                          className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm"
+                          placeholder="Sua ID de Usuário"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Hash size={12}/> Qtd. de Posts (6 a 9)</label>
+                        <select 
+                          value={localSettings.instagramSection.fetchCount || 8} 
+                          onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, fetchCount: parseInt(e.target.value) })} 
+                          className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm appearance-none"
+                        >
+                          {[6,7,8,9].map(n => <option key={n} value={n}>{n} posts</option>)}
+                        </select>
+                    </div>
+                    <p className="text-[9px] text-gray-400 ml-4 italic">Se a API falhar ou não estiver configurada, usaremos os posts manuais abaixo como fallback.</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Título da Seção</label>
+                        <input 
+                            type="text" 
+                            value={localSettings.instagramSection.title} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, title: e.target.value })} 
+                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Texto do Botão</label>
+                        <input 
+                            type="text" 
+                            value={localSettings.instagramSection.buttonText} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, buttonText: e.target.value })} 
+                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
+                        />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Username (ex: @detalhes)</label>
+                        <input 
+                            type="text" 
+                            value={localSettings.instagramSection.username} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, username: e.target.value })} 
+                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Link do Perfil</label>
+                        <input 
+                            type="text" 
+                            value={localSettings.instagramSection.profileUrl} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, profileUrl: e.target.value })} 
+                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
+                        />
+                    </div>
+                </div>
+
+                <div className="pt-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Posts Manuais (Fallback)</label>
+                        <button onClick={addInstagramPost} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {localSettings.instagramSection.posts.map((post) => (
+                            <div key={post.id} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group">
+                                {post.imageUrl ? (
+                                    <img src={post.imageUrl} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                        <ImageIcon size={24} />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col p-4 justify-between">
+                                    <button 
+                                        onClick={() => removeInstagramPost(post.id)} 
+                                        className="self-end p-2 bg-red-500 text-white rounded-full"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                    <input 
+                                        type="text" 
+                                        placeholder="URL da Imagem"
+                                        value={post.imageUrl}
+                                        onChange={(e) => updateInstagramPost(post.id, e.target.value)}
+                                        className="w-full px-3 py-2 rounded-lg bg-white/90 text-[9px] outline-none"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+          </section>
+
+          {/* FAQ Management */}
+          <section id="sec-faq" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
+            <div className="flex justify-between items-center border-b border-gray-50 pb-6">
+              <h2 className="text-xl font-serif flex items-center space-x-3"><HelpCircle size={20} className="text-[#D5BDAF]" /><span>FAQ - Dúvidas Frequentes</span></h2>
+              <button onClick={addFaq} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
+            </div>
+            <div className="space-y-6">
+                {(localSettings.faqs || []).map((f) => (
+                    <div key={f.id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
+                        <div className="flex justify-between items-start">
+                            <input 
+                                type="text" 
+                                value={f.question} 
+                                onChange={(e) => updateFaq(f.id, { question: e.target.value })}
+                                className="bg-transparent font-bold uppercase tracking-widest text-[10px] outline-none border-b border-gray-200 pb-1 w-full mr-12"
+                                placeholder="Pergunta"
+                            />
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => updateFaq(f.id, { enabled: !f.enabled })} className={`p-2 transition-colors ${f.enabled ? 'text-[#D5BDAF]' : 'text-gray-300'}`}>{f.enabled ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
+                                <button onClick={() => removeFaq(f.id)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={14}/></button>
+                            </div>
+                        </div>
+                        <textarea 
+                            value={f.answer} 
+                            onChange={(e) => updateFaq(f.id, { answer: e.target.value })}
+                            className="w-full bg-white p-4 rounded-2xl text-[11px] outline-none h-24 resize-none shadow-inner"
+                            placeholder="Resposta detalhada..."
+                        />
+                    </div>
+                ))}
+            </div>
+          </section>
+
           {/* Taxonomy */}
-          <section id="sec-taxonomy" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-12 scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-taxonomy" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-12 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif border-b border-gray-50 pb-6 flex items-center space-x-3"><TagIcon size={20} className="text-[#D5BDAF]" /><span>Taxonomia da Loja</span></h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-4">
@@ -406,7 +685,7 @@ const AdminSettings: React.FC = () => {
           </section>
 
           {/* Segurança */}
-          <section id="sec-security" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-10 scroll-mt-24 md:scroll-mt-32">
+          <section id="sec-security" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-10 scroll-mt-36 md:scroll-mt-32">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6"><h2 className="text-xl font-serif flex items-center space-x-3"><ShieldCheck size={20} className="text-[#D5BDAF]" /><span>Acesso ADM</span></h2><button onClick={() => { setEditingUser({username: '', role: 'editor'}); setShowUserModal(true); }} className="text-[#D5BDAF] p-2 hover:bg-[#FAF7F2] rounded-full transition-colors"><UserPlus size={20} /></button></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{adminUsers.map(user => (
                 <div key={user.id} className="p-4 bg-gray-50 rounded-3xl flex items-center justify-between group border border-transparent hover:border-[#D5BDAF]/20 transition-all">
