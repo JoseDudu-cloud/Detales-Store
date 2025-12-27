@@ -1,4 +1,1 @@
-
-// Este arquivo foi desativado em favor da estrutura do Next.js (pages/_app.tsx).
-// Você pode deletá-lo do projeto.
-export {}
+// Removido para suportar o Next.js App Router em app/layout.tsx e app/page.tsx

@@ -1,7 +1,9 @@
 
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
+import { usePathname } from 'next/navigation';
 import { ShoppingBag, Menu, X, User, CheckCircle2, MessageCircle } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import Hotbar from './Hotbar';
@@ -10,7 +12,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { settings, cart, notifications } = useStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const router = useRouter();
+  const pathname = usePathname();
   
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -20,7 +22,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isHomePage = router.pathname === '/';
+  const isHomePage = pathname === '/';
   
   const headerBgClass = (isHomePage && !isScrolled) 
     ? 'bg-transparent border-transparent' 
@@ -47,8 +49,8 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
 
           <nav className={`hidden md:flex items-center justify-center space-x-10 text-[10px] uppercase tracking-[0.25em] font-bold transition-colors duration-500 ${navLinkClass}`}>
-            <Link href="/" className={router.pathname === '/' ? 'text-[#D5BDAF]' : ''}>Início</Link>
-            <Link href="/catalog" className={router.pathname === '/catalog' ? 'text-[#D5BDAF]' : ''}>Coleções</Link>
+            <Link href="/" className={pathname === '/' ? 'text-[#D5BDAF]' : ''}>Início</Link>
+            <Link href="/catalog" className={pathname === '/catalog' ? 'text-[#D5BDAF]' : ''}>Coleções</Link>
             <Link href="/catalog?cat=Kits %26 Presentes">Presentes</Link>
           </nav>
 
@@ -78,7 +80,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       )}
 
-      {/* Toast Notifications */}
+      {/* Notifications Portal */}
       <div className="fixed bottom-10 right-10 z-[100] flex flex-col items-end space-y-4 pointer-events-none">
         {notifications.map(n => (
           <div key={n.id} className="bg-[#212529] text-white px-8 py-4 rounded-full shadow-2xl flex items-center space-x-4 animate-slide-up pointer-events-auto">
@@ -88,7 +90,6 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         ))}
       </div>
 
-      {/* Floating WhatsApp */}
       {settings.whatsappNumber && (
         <a 
           href={`https://wa.me/${settings.whatsappNumber}`} 
@@ -120,7 +121,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="md:col-span-2 text-right">
             <h3 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-8 text-gray-400">Atendimento</h3>
             <p className="text-sm text-gray-600 font-light">{settings.contactEmail}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-4">© 2024 Detalhes Store - Semijoias Premium</p>
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-4">© 2024 {settings.logoText} - Semijoias Premium</p>
           </div>
         </div>
       </footer>

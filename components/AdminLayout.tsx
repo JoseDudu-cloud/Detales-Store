@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+
+"use client";
+
+import React from 'react';
 import { useStore } from '@/context/StoreContext';
-import { useRouter } from 'next/router';
-import { LayoutDashboard, Package, Settings as SettingsIcon, LogOut, ChevronLeft, Menu } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Package, Settings as SettingsIcon, LogOut, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const router = useRouter();
+  const pathname = usePathname();
   const { logout } = useStore();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navItems = [
     { label: 'Painel', path: '/admin', icon: LayoutDashboard },
@@ -26,7 +28,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <Link 
               key={item.path} 
               href={item.path} 
-              className={`flex items-center space-x-4 px-8 py-5 text-[10px] uppercase tracking-[0.25em] font-bold transition-all rounded-full ${router.pathname === item.path ? 'bg-[#212529] text-white shadow-xl' : 'text-gray-400 hover:bg-gray-50'}`}
+              className={`flex items-center space-x-4 px-8 py-5 text-[10px] uppercase tracking-[0.25em] font-bold transition-all rounded-full ${pathname === item.path ? 'bg-[#212529] text-white shadow-xl' : 'text-gray-400 hover:bg-gray-50'}`}
             >
               <item.icon size={16} />
               <span>{item.label}</span>

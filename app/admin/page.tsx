@@ -1,6 +1,9 @@
+
+"use client";
+
 import React, { useEffect } from 'react';
 import { useStore } from '@/context/StoreContext';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { Users, Eye, ShoppingBag, MessageCircle, TrendingUp } from 'lucide-react';
 
@@ -10,7 +13,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!admin) router.push('/admin/login');
-  }, [admin]);
+  }, [admin, router]);
 
   if (!admin) return null;
 
@@ -43,8 +46,8 @@ export default function AdminDashboard() {
             <h3 className="font-bold uppercase tracking-widest text-xs text-gray-700">Desempenho da Loja</h3>
             <TrendingUp size={16} className="text-green-500" />
           </div>
-          <div className="h-48 flex items-center justify-center text-gray-300 italic text-sm">
-            Gráfico de conversão em tempo real sendo processado...
+          <div className="h-48 flex items-center justify-center text-gray-300 italic text-sm border-2 border-dashed border-gray-100 rounded-xl">
+            Gráfico de conversão sendo processado em tempo real...
           </div>
         </div>
       </div>

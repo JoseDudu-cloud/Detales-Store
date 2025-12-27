@@ -1,5 +1,8 @@
+
+"use client";
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { StoreSettings, Product, AnalyticsData, CartItem, AdminUser, Tag } from '../types';
+import { StoreSettings, Product, AnalyticsData, CartItem, AdminUser } from '../types';
 import { INITIAL_SETTINGS, INITIAL_PRODUCTS } from '../constants';
 
 interface Notification {
@@ -34,7 +37,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [cart, setCart] = useState<CartItem[]>([]);
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [analytics, setAnalytics] = useState<AnalyticsData>({
+  const [analytics] = useState<AnalyticsData>({
     visitors: 1240, productViews: 4500, addedToCart: 580, whatsappCheckouts: 120, abandonedCarts: 460, revenue: 24500
   });
 
@@ -73,7 +76,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateCartQuantity = (pId: string, q: number) => setCart(prev => prev.map(i => i.productId === pId ? { ...i, quantity: Math.max(0, q) } : i));
 
   const login = async (u: string, p: string) => {
-    // Login simplificado para admin/admin
     if (u === 'admin' && p === 'admin') {
       const user: AdminUser = { id: '1', username: 'admin', role: 'superadmin', createdAt: Date.now(), passwordHash: '' };
       setAdmin(user);
