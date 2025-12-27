@@ -100,27 +100,60 @@ const DEFAULT_ADMIN: AdminUser = {
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettingsState] = useState<StoreSettings>(() => {
     const saved = safeLocalStorage.getItem('detalhes_settings');
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
+    if (!saved) return INITIAL_SETTINGS;
+    
+    try {
+      const parsed = JSON.parse(saved);
+      // Deep merge to ensure all keys from INITIAL_SETTINGS exist
+      // This prevents white screens when new config features are added
+      return {
+        ...INITIAL_SETTINGS,
+        ...parsed,
+        socialLinks: parsed.socialLinks ? { ...INITIAL_SETTINGS.socialLinks, ...parsed.socialLinks } : INITIAL_SETTINGS.socialLinks,
+        institutional: parsed.institutional ? { ...INITIAL_SETTINGS.institutional, ...parsed.institutional } : INITIAL_SETTINGS.institutional,
+        instagramSection: parsed.instagramSection ? { ...INITIAL_SETTINGS.instagramSection, ...parsed.instagramSection } : INITIAL_SETTINGS.instagramSection,
+      };
+    } catch (e) {
+      console.error("Failed to parse settings", e);
+      return INITIAL_SETTINGS;
+    }
   });
 
   const [products, setProductsState] = useState<Product[]>(() => {
     const saved = safeLocalStorage.getItem('detalhes_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    try {
+      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    } catch (e) {
+      return INITIAL_PRODUCTS;
+    }
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = safeLocalStorage.getItem('detalhes_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const [admin, setAdmin] = useState<AdminUser | null>(() => {
     const saved = safeSessionStorage.getItem('detalhes_admin');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
     const saved = safeLocalStorage.getItem('detalhes_admin_users');
-    let users: AdminUser[] = saved ? JSON.parse(saved) : [];
+    let users: AdminUser[] = [];
+    try {
+      users = saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      users = [];
+    }
     
     // Check if the default admin needs update or initialization
     const hasDefaultAdmin = users.find(u => u.id === 'default-admin');
@@ -138,14 +171,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [analytics, setAnalytics] = useState<AnalyticsData>(() => {
     const saved = safeLocalStorage.getItem('detalhes_analytics');
-    return saved ? JSON.parse(saved) : {
-      visitors: 842,
-      productViews: 2450,
-      addedToCart: 312,
-      whatsappCheckouts: 94,
-      abandonedCarts: 218,
-      revenue: 18450
-    };
+    try {
+      return saved ? JSON.parse(saved) : {
+        visitors: 842,
+        productViews: 2450,
+        addedToCart: 312,
+        whatsappCheckouts: 94,
+        abandonedCarts: 218,
+        revenue: 18450
+      };
+    } catch (e) {
+      return { visitors: 0, productViews: 0, addedToCart: 0, whatsappCheckouts: 0, abandonedCarts: 0, revenue: 0 };
+    }
   });
 
   useEffect(() => {

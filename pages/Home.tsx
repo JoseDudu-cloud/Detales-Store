@@ -18,13 +18,23 @@ const Home: React.FC = () => {
 
   const bestSellers = products.filter(p => p.tags.includes('Mais Vendido')).slice(0, 4);
   const newArrivals = products.filter(p => p.tags.includes('Novidade')).slice(0, 4);
-  const activeTestimonials = settings.testimonials?.filter(t => t.enabled) || [];
-  const activeFaqs = settings.faqs?.filter(f => f.enabled) || [];
-  const instagram = settings.instagramSection || { enabled: false, posts: [] };
+  const activeTestimonials = settings?.testimonials?.filter(t => t.enabled) || [];
+  const activeFaqs = settings?.faqs?.filter(f => f.enabled) || [];
+  
+  // Defensive initialization for instagramSection
+  const instagram = settings?.instagramSection || { 
+    enabled: false, 
+    useApi: false, 
+    posts: [], 
+    title: 'Siga-nos', 
+    username: '', 
+    profileUrl: '#', 
+    buttonText: 'Instagram' 
+  };
 
   useEffect(() => {
     const fetchInstagramFeed = async () => {
-      if (!instagram.enabled || !instagram.useApi || !instagram.accessToken || !instagram.userId) return;
+      if (!instagram?.enabled || !instagram?.useApi || !instagram?.accessToken || !instagram?.userId) return;
       
       setLoadingInstagram(true);
       try {
@@ -51,16 +61,16 @@ const Home: React.FC = () => {
     };
 
     fetchInstagramFeed();
-  }, [instagram.enabled, instagram.useApi, instagram.accessToken, instagram.userId, instagram.fetchCount]);
+  }, [instagram?.enabled, instagram?.useApi, instagram?.accessToken, instagram?.userId, instagram?.fetchCount]);
 
-  const displayPosts = (instagram.useApi && apiPosts.length > 0) ? apiPosts : instagram.posts;
+  const displayPosts = (instagram?.useApi && apiPosts.length > 0) ? apiPosts : (instagram?.posts || []);
 
   return (
     <div className="animate-fade-in bg-[#FDFBF9]">
       {/* Hero Section */}
       <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
         <img 
-          src={settings.heroImageUrl} 
+          src={settings?.heroImageUrl || ''} 
           alt="Premium Jewelry Lifestyle" 
           className="absolute inset-0 w-full h-full object-cover brightness-[0.85] transition-all duration-1000"
         />
@@ -69,14 +79,14 @@ const Home: React.FC = () => {
           <div className="flex justify-center mb-6">
             <span className="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.3em] font-bold">
               <Sparkles size={12} />
-              <span>{settings.isLiveOn ? 'OFERTAS DA LIVE' : 'Coleção Exclusiva'}</span>
+              <span>{settings?.isLiveOn ? 'OFERTAS DA LIVE' : 'Coleção Exclusiva'}</span>
             </span>
           </div>
-          <h1 className="text-4xl md:text-7xl font-serif mb-6 leading-tight drop-shadow-lg">
-            {settings.headline}
+          <h1 className="text-4xl md:text-7xl font-serif mb-6 leading-tight drop-shadow-lg font-medium">
+            {settings?.headline || ''}
           </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-10 font-light max-w-2xl mx-auto tracking-wide">
-            {settings.subheadline}
+          <p className="text-lg md:text-xl text-white/90 mb-10 font-light max-w-2xl mx-auto tracking-wide italic">
+            {settings?.subheadline || ''}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
             <Link 
@@ -96,7 +106,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Conversion Banner: Live Urgency (Y) - ONLY IF LIVE IS ON */}
-      {settings.isLiveOn && (
+      {settings?.isLiveOn && (
         <section className="bg-red-600 text-white py-4 px-6 overflow-hidden">
           <div className="max-w-7xl mx-auto flex items-center justify-center space-x-8 animate-pulse">
              <div className="flex items-center space-x-3 text-[10px] uppercase tracking-[0.3em] font-bold">
@@ -121,8 +131,8 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-50 group-hover:scale-110 group-hover:bg-[#D5BDAF] transition-all duration-500">
                 <ShieldCheck className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.2} />
               </div>
-              <h3 className="font-serif text-xl mb-3 text-gray-900">Qualidade Premium</h3>
-              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-medium">
+              <h3 className="font-serif text-2xl mb-3 text-gray-900 font-medium">Qualidade Premium</h3>
+              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-semibold">
                 Banhado a ouro 18k e prata 925, com verniz de proteção antialérgico.
               </p>
             </div>
@@ -132,8 +142,8 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-50 group-hover:scale-110 group-hover:bg-[#D5BDAF] transition-all duration-500">
                 <Heart className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.2} />
               </div>
-              <h3 className="font-serif text-xl mb-3 text-gray-900">Curadoria Feminina</h3>
-              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-medium">
+              <h3 className="font-serif text-2xl mb-3 text-gray-900 font-medium">Curadoria Feminina</h3>
+              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-semibold">
                 Peças pensadas por mulheres para mulheres, unindo tendência e atemporalidade.
               </p>
             </div>
@@ -143,8 +153,8 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-50 group-hover:scale-110 group-hover:bg-[#D5BDAF] transition-all duration-500">
                 <Sparkles className="text-[#D5BDAF] group-hover:text-white transition-colors" size={28} strokeWidth={1.2} />
               </div>
-              <h3 className="font-serif text-xl mb-3 text-gray-900">Atendimento Pessoal</h3>
-              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-medium">
+              <h3 className="font-serif text-2xl mb-3 text-gray-900 font-medium">Atendimento Pessoal</h3>
+              <p className="text-gray-400 text-[10px] leading-relaxed uppercase tracking-[0.2em] max-w-[240px] font-semibold">
                 Suporte dedicado no WhatsApp para te ajudar a escolher a peça perfeita.
               </p>
             </div>
@@ -157,7 +167,7 @@ const Home: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-16 space-y-4 md:space-y-0 text-center md:text-left">
           <div>
             <span className="text-[#D5BDAF] text-[10px] font-bold uppercase tracking-[0.3em] mb-2 block">Os Mais Desejados</span>
-            <h2 className="text-4xl font-serif">Favoritos Detalhes</h2>
+            <h2 className="text-5xl font-serif font-medium">Favoritos Detalhes</h2>
           </div>
           <Link to="/catalog" className="text-[11px] font-bold uppercase tracking-[0.2em] border-b border-black pb-1 hover:text-[#D5BDAF] hover:border-[#D5BDAF] transition-all">
             Ver tudo
@@ -184,8 +194,8 @@ const Home: React.FC = () => {
           </div>
           <div className="w-full md:w-7/12 space-y-10">
             <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.3em]">Beleza & Confiança</span>
-            <h2 className="text-4xl md:text-5xl font-serif leading-tight text-gray-900">Peças que contam a sua história.</h2>
-            <p className="text-gray-500 leading-relaxed text-lg font-light">
+            <h2 className="text-5xl md:text-6xl font-serif leading-tight text-gray-900 font-medium">Peças que contam a sua história.</h2>
+            <p className="text-gray-500 leading-relaxed text-lg font-light italic">
               Cada semijoia Detalhes é selecionada para proporcionar mais que um acessório: um momento de autocuidado e elegância.
             </p>
             <Link 
@@ -203,7 +213,7 @@ const Home: React.FC = () => {
       <section className="py-24 px-6 max-w-7xl mx-auto">
         <div className="text-center mb-20 space-y-4">
           <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.4em]">Novidades</span>
-          <h2 className="text-4xl font-serif">Sua dose semanal de brilho</h2>
+          <h2 className="text-5xl font-serif font-medium">Sua dose semanal de brilho</h2>
           <div className="w-12 h-[1px] bg-[#D5BDAF] mx-auto mt-6"></div>
         </div>
         
@@ -220,7 +230,7 @@ const Home: React.FC = () => {
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
               <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.4em]">Depoimentos</span>
-              <h2 className="text-3xl md:text-4xl font-serif mt-4">O que elas dizem sobre nossos detalhes</h2>
+              <h2 className="text-4xl md:text-5xl font-serif mt-4 font-medium">O que elas dizem sobre nossos detalhes</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {activeTestimonials.map(t => (
@@ -228,7 +238,7 @@ const Home: React.FC = () => {
                   <div className="flex text-[#D5BDAF] mb-6">
                     {Array.from({ length: t.rating }).map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
                   </div>
-                  <p className="text-gray-600 font-serif italic text-lg leading-relaxed mb-8">"{t.text}"</p>
+                  <p className="text-gray-600 font-serif italic text-xl leading-relaxed mb-8">"{t.text}"</p>
                   <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-900">— {t.name}</span>
                 </div>
               ))}
@@ -238,12 +248,12 @@ const Home: React.FC = () => {
       )}
 
       {/* Instagram Showcase Section */}
-      {instagram.enabled && (
+      {instagram?.enabled && (instagram?.posts?.length > 0 || apiPosts.length > 0) && (
         <section className="py-24 bg-white">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
               <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.4em] block mb-4">Comunidade</span>
-              <h2 className="text-3xl md:text-4xl font-serif mb-4">{instagram.title}</h2>
+              <h2 className="text-4xl md:text-5xl font-serif mb-4 font-medium">{instagram.title}</h2>
               <a 
                 href={instagram.profileUrl} 
                 target="_blank" 
@@ -259,7 +269,7 @@ const Home: React.FC = () => {
                 <div className="w-8 h-8 border-4 border-[#D5BDAF] border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : (
-              <div className={`grid grid-cols-2 md:grid-cols-${Math.min(displayPosts.length, 4)} lg:grid-cols-4 gap-4 md:gap-6 mb-16`}>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
                 {displayPosts.map((post) => (
                   <a 
                     key={post.id} 
@@ -271,7 +281,6 @@ const Home: React.FC = () => {
                     <img 
                       src={post.imageUrl} 
                       alt="Instagram Post" 
-                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                     />
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -302,7 +311,7 @@ const Home: React.FC = () => {
           <div className="max-w-3xl mx-auto px-6">
             <div className="text-center mb-16">
               <span className="text-[#D5BDAF] text-[11px] font-bold uppercase tracking-[0.4em]">Suporte</span>
-              <h2 className="text-3xl md:text-4xl font-serif mt-4">Dúvidas Frequentes</h2>
+              <h2 className="text-4xl md:text-5xl font-serif mt-4 font-medium">Dúvidas Frequentes</h2>
             </div>
             <div className="space-y-4">
               {activeFaqs.map(f => (
@@ -324,12 +333,12 @@ const FAQItemComponent: React.FC<{ item: any }> = ({ item }) => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-8 py-6 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
       >
-        <span className="text-sm font-serif font-bold text-gray-900 tracking-wide">{item.question}</span>
+        <span className="text-lg font-serif font-semibold text-gray-900 tracking-wide">{item.question}</span>
         {isOpen ? <Minus size={16} className="text-[#D5BDAF]" /> : <Plus size={16} className="text-[#D5BDAF]" />}
       </button>
       {isOpen && (
         <div className="px-8 pb-8 animate-fade-in">
-          <p className="text-gray-500 text-xs leading-relaxed tracking-wide font-light">{item.answer}</p>
+          <p className="text-gray-500 text-sm leading-relaxed tracking-wide font-light">{item.answer}</p>
         </div>
       )}
     </div>
@@ -365,7 +374,7 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         
         {/* Tags */}
         <div className="absolute top-4 left-4 flex flex-col space-y-2 pointer-events-none z-10">
-          {product.tags.map((tag: any, i: number) => (
+          {(product.tags || []).map((tag: any, i: number) => (
             <span key={i} className={`text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-1.5 rounded-full shadow-lg ${
               tag === 'Novidade' ? 'bg-white text-black' : 
               tag === 'Oferta da Live' ? 'bg-red-500 text-white' : 
@@ -388,10 +397,10 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         </div>
       </div>
       <div className="text-center px-2">
-        <h3 className="text-[12px] uppercase tracking-[0.15em] font-medium text-gray-500 mb-1 group-hover:text-black transition-colors">
+        <h3 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-gray-400 mb-1 group-hover:text-black transition-colors">
           {product.name}
         </h3>
-        <p className="text-sm font-bold text-gray-900 tracking-wider font-serif">
+        <p className="text-lg font-bold text-gray-900 tracking-wider font-serif">
           R$ {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </p>
       </div>

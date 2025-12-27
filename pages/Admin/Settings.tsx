@@ -11,7 +11,9 @@ import {
 
 const AdminSettings: React.FC = () => {
   const { settings, setSettings, adminUsers, deleteAdminUser, createAdminUser, updateAdminUser, showNotification } = useStore();
-  const [localSettings, setLocalSettings] = useState(settings);
+  
+  // Defensive initialization for local state
+  const [localSettings, setLocalSettings] = useState(settings || {});
   const [saved, setSaved] = useState(false);
   
   const [newCat, setNewCat] = useState('');
@@ -41,14 +43,14 @@ const AdminSettings: React.FC = () => {
   const updateSocial = (field: string, value: string) => {
     setLocalSettings(prev => ({
         ...prev,
-        socialLinks: { ...prev.socialLinks, [field]: value }
+        socialLinks: { ...(prev?.socialLinks || {}), [field]: value }
     }));
   };
 
   const updateInstitutional = (field: string, value: string) => {
     setLocalSettings(prev => ({
         ...prev,
-        institutional: { ...prev.institutional, [field]: value }
+        institutional: { ...(prev?.institutional || {}), [field]: value }
     }));
   };
 
@@ -81,16 +83,16 @@ const AdminSettings: React.FC = () => {
 
   const addItem = (field: 'categories' | 'tags', value: string, resetter: (v: string) => void) => {
     if (!value) return;
-    if ((localSettings[field] as string[]).includes(value)) {
+    if (((localSettings[field] as string[]) || []).includes(value)) {
       showNotification("Este item já existe.");
       return;
     }
-    updateField(field, [...(localSettings[field] as string[]), value]);
+    updateField(field, [...((localSettings[field] as string[]) || []), value]);
     resetter('');
   };
 
   const removeItem = (field: 'categories' | 'tags', value: string) => {
-    updateField(field, (localSettings[field] as string[]).filter(item => item !== value));
+    updateField(field, ((localSettings[field] as string[]) || []).filter(item => item !== value));
   };
 
   const addHotbarMessage = () => {
@@ -100,7 +102,7 @@ const AdminSettings: React.FC = () => {
         text: newHotbarText.toUpperCase(),
         enabled: true
     };
-    updateField('hotbarMessages', [...localSettings.hotbarMessages, newMessage]);
+    updateField('hotbarMessages', [...(localSettings?.hotbarMessages || []), newMessage]);
     setNewHotbarText('');
   };
 
@@ -112,15 +114,15 @@ const AdminSettings: React.FC = () => {
       rating: 5,
       enabled: true
     };
-    updateField('testimonials', [...(localSettings.testimonials || []), newT]);
+    updateField('testimonials', [...(localSettings?.testimonials || []), newT]);
   };
 
   const removeTestimonial = (id: string) => {
-    updateField('testimonials', localSettings.testimonials.filter(t => t.id !== id));
+    updateField('testimonials', (localSettings?.testimonials || []).filter(t => t.id !== id));
   };
 
   const updateTestimonial = (id: string, updates: any) => {
-    updateField('testimonials', localSettings.testimonials.map(t => t.id === id ? { ...t, ...updates } : t));
+    updateField('testimonials', (localSettings?.testimonials || []).map(t => t.id === id ? { ...t, ...updates } : t));
   };
 
   const addFaq = () => {
@@ -130,15 +132,15 @@ const AdminSettings: React.FC = () => {
       answer: 'Resposta detalhada...',
       enabled: true
     };
-    updateField('faqs', [...(localSettings.faqs || []), newF]);
+    updateField('faqs', [...(localSettings?.faqs || []), newF]);
   };
 
   const removeFaq = (id: string) => {
-    updateField('faqs', localSettings.faqs.filter(f => f.id !== id));
+    updateField('faqs', (localSettings?.faqs || []).filter(f => f.id !== id));
   };
 
   const updateFaq = (id: string, updates: any) => {
-    updateField('faqs', localSettings.faqs.map(f => f.id === id ? { ...f, ...updates } : f));
+    updateField('faqs', (localSettings?.faqs || []).map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
   const startEditingHotbar = (msg: {id: string, text: string}) => {
@@ -147,7 +149,7 @@ const AdminSettings: React.FC = () => {
   };
 
   const saveHotbarEdit = (id: string) => {
-    updateField('hotbarMessages', localSettings.hotbarMessages.map(m => 
+    updateField('hotbarMessages', (localSettings?.hotbarMessages || []).map(m => 
         m.id === id ? { ...m, text: tempHotbarText.toUpperCase() } : m
     ));
     setEditingHotbarId(null);
@@ -180,22 +182,22 @@ const AdminSettings: React.FC = () => {
   const addInstagramPost = () => {
     const newPost = { id: Math.random().toString(36).substr(2, 9), imageUrl: '' };
     updateField('instagramSection', {
-      ...localSettings.instagramSection,
-      posts: [...(localSettings.instagramSection?.posts || []), newPost]
+      ...(localSettings?.instagramSection || {}),
+      posts: [...(localSettings?.instagramSection?.posts || []), newPost]
     });
   };
 
   const updateInstagramPost = (id: string, url: string) => {
     updateField('instagramSection', {
-      ...localSettings.instagramSection,
-      posts: localSettings.instagramSection.posts.map(p => p.id === id ? { ...p, imageUrl: url } : p)
+      ...localSettings?.instagramSection,
+      posts: (localSettings?.instagramSection?.posts || []).map(p => p.id === id ? { ...p, imageUrl: url } : p)
     });
   };
 
   const removeInstagramPost = (id: string) => {
     updateField('instagramSection', {
-      ...localSettings.instagramSection,
-      posts: localSettings.instagramSection.posts.filter(p => p.id !== id)
+      ...localSettings?.instagramSection,
+      posts: (localSettings?.instagramSection?.posts || []).filter(p => p.id !== id)
     });
   };
 
@@ -253,19 +255,19 @@ const AdminSettings: React.FC = () => {
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Layout size={20} className="text-[#D5BDAF]" /><span>Logo da Loja</span></h2>
             <div className="space-y-6">
                 <div className="flex p-1.5 bg-gray-50 rounded-full w-full max-w-sm mx-auto md:mx-0">
-                  <button onClick={() => updateField('logoType', 'text')} className={`flex-1 py-3 flex items-center justify-center space-x-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition ${localSettings.logoType === 'text' ? 'bg-white shadow-md text-black' : 'text-gray-400'}`}><Type size={14} /><span>Texto</span></button>
-                  <button onClick={() => updateField('logoType', 'image')} className={`flex-1 py-3 flex items-center justify-center space-x-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition ${localSettings.logoType === 'image' ? 'bg-white shadow-md text-black' : 'text-gray-400'}`}><ImageIcon size={14} /><span>Imagem</span></button>
+                  <button onClick={() => updateField('logoType', 'text')} className={`flex-1 py-3 flex items-center justify-center space-x-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition ${localSettings?.logoType === 'text' ? 'bg-white shadow-md text-black' : 'text-gray-400'}`}><Type size={14} /><span>Texto</span></button>
+                  <button onClick={() => updateField('logoType', 'image')} className={`flex-1 py-3 flex items-center justify-center space-x-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition ${localSettings?.logoType === 'image' ? 'bg-white shadow-md text-black' : 'text-gray-400'}`}><ImageIcon size={14} /><span>Imagem</span></button>
                 </div>
                 
-                {localSettings.logoType === 'text' ? (
+                {localSettings?.logoType === 'text' ? (
                    <div className="space-y-2">
                      <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Nome da Marca</label>
-                     <input type="text" value={localSettings.logoText} onChange={(e) => updateField('logoText', e.target.value)} className="w-full px-6 md:px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white transition shadow-inner" placeholder="Ex: DETALHES"/>
+                     <input type="text" value={localSettings?.logoText || ''} onChange={(e) => updateField('logoText', e.target.value)} className="w-full px-6 md:px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white transition shadow-inner" placeholder="Ex: DETALHES"/>
                    </div>
                 ) : (
                   <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
                     <div className="w-32 h-16 bg-white rounded-xl flex items-center justify-center border border-gray-100 overflow-hidden">
-                       {localSettings.logoUrl ? <img src={localSettings.logoUrl} className="max-w-full max-h-full object-contain p-2" /> : <ImageIcon size={24} className="text-gray-200"/>}
+                       {localSettings?.logoUrl ? <img src={localSettings.logoUrl} className="max-w-full max-h-full object-contain p-2" /> : <ImageIcon size={24} className="text-gray-200"/>}
                     </div>
                     <div className="flex-grow text-center sm:text-left">
                        <button 
@@ -288,7 +290,7 @@ const AdminSettings: React.FC = () => {
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><ImageLucide size={20} className="text-[#D5BDAF]" /><span>Banner Principal</span></h2>
             <div className="space-y-6">
                 <div className="relative aspect-video rounded-[2rem] overflow-hidden bg-gray-100 border border-gray-100 shadow-inner group">
-                    {localSettings.heroImageUrl ? (
+                    {localSettings?.heroImageUrl ? (
                        <img src={localSettings.heroImageUrl} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
@@ -303,11 +305,11 @@ const AdminSettings: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Headline</label>
-                    <input type="text" value={localSettings.headline} onChange={(e) => updateField('headline', e.target.value)} className="w-full px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white"/>
+                    <input type="text" value={localSettings?.headline || ''} onChange={(e) => updateField('headline', e.target.value)} className="w-full px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white"/>
                 </div>
                 <div className="space-y-2">
                    <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Subheadline</label>
-                   <textarea value={localSettings.subheadline} onChange={(e) => updateField('subheadline', e.target.value)} className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-sm h-32 resize-none focus:bg-white shadow-inner" placeholder="Ex: Semijoias que traduzem sua essência..."/>
+                   <textarea value={localSettings?.subheadline || ''} onChange={(e) => updateField('subheadline', e.target.value)} className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-sm h-32 resize-none focus:bg-white shadow-inner" placeholder="Ex: Semijoias que traduzem sua essência..."/>
                 </div>
             </div>
           </section>
@@ -319,7 +321,7 @@ const AdminSettings: React.FC = () => {
             <div className="space-y-8">
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Phone size={12}/> Número WhatsApp (DDI+DDD+Número)</label>
-                    <input type="text" value={localSettings.whatsappNumber} onChange={(e) => updateField('whatsappNumber', e.target.value)} className="w-full px-6 md:px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm font-mono shadow-inner" placeholder="Ex: 5511999999999"/>
+                    <input type="text" value={localSettings?.whatsappNumber || ''} onChange={(e) => updateField('whatsappNumber', e.target.value)} className="w-full px-6 md:px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm font-mono shadow-inner" placeholder="Ex: 5511999999999"/>
                     <p className="text-[9px] text-gray-400 ml-4 italic uppercase">Este número receberá os pedidos finalizados.</p>
                 </div>
 
@@ -329,7 +331,7 @@ const AdminSettings: React.FC = () => {
                         <span className="text-[8px] bg-blue-50 text-blue-500 px-2 py-1 rounded-full uppercase font-bold">Padrão</span>
                     </div>
                     <textarea 
-                        value={localSettings.whatsappTemplateRegular} 
+                        value={localSettings?.whatsappTemplateRegular || ''} 
                         onChange={(e) => updateField('whatsappTemplateRegular', e.target.value)} 
                         className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-xs h-32 resize-none leading-relaxed focus:bg-white transition shadow-inner font-mono" 
                     />
@@ -341,7 +343,7 @@ const AdminSettings: React.FC = () => {
                         <span className="text-[8px] bg-red-50 text-red-500 px-2 py-1 rounded-full uppercase font-bold">Urgência</span>
                     </div>
                     <textarea 
-                        value={localSettings.whatsappTemplateLive} 
+                        value={localSettings?.whatsappTemplateLive || ''} 
                         onChange={(e) => updateField('whatsappTemplateLive', e.target.value)} 
                         className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-xs h-32 resize-none leading-relaxed focus:bg-white transition shadow-inner font-mono" 
                     />
@@ -364,19 +366,19 @@ const AdminSettings: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Instagram size={12}/> Instagram</label>
-                    <input type="text" value={localSettings.socialLinks.instagram} onChange={(e) => updateSocial('instagram', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <input type="text" value={localSettings?.socialLinks?.instagram || ''} onChange={(e) => updateSocial('instagram', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Facebook size={12}/> Facebook</label>
-                    <input type="text" value={localSettings.socialLinks.facebook} onChange={(e) => updateSocial('facebook', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <input type="text" value={localSettings?.socialLinks?.facebook || ''} onChange={(e) => updateSocial('facebook', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2">TikTok</label>
-                    <input type="text" value={localSettings.socialLinks.tiktok} onChange={(e) => updateSocial('tiktok', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <input type="text" value={localSettings?.socialLinks?.tiktok || ''} onChange={(e) => updateSocial('tiktok', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Mail size={12}/> Email Atendimento</label>
-                    <input type="text" value={localSettings.contactEmail} onChange={(e) => updateField('contactEmail', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <input type="text" value={localSettings?.contactEmail || ''} onChange={(e) => updateField('contactEmail', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
                 </div>
             </div>
           </section>
@@ -384,8 +386,8 @@ const AdminSettings: React.FC = () => {
           {/* Live Commerce */}
           <section id="sec-live" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm scroll-mt-36 md:scroll-mt-32">
              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-serif flex items-center space-x-3"><Radio size={20} className={localSettings.isLiveOn ? 'text-red-500' : 'text-gray-300'} /><span>Live Commerce Ativa?</span></h2>
-                <button onClick={() => updateField('isLiveOn', !localSettings.isLiveOn)} className={`w-14 h-7 rounded-full relative transition-all ${localSettings.isLiveOn ? 'bg-red-500 shadow-lg shadow-red-200' : 'bg-gray-200'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings.isLiveOn ? 'right-1' : 'left-1'}`} /></button>
+                <h2 className="text-xl font-serif flex items-center space-x-3"><Radio size={20} className={localSettings?.isLiveOn ? 'text-red-500' : 'text-gray-300'} /><span>Live Commerce Ativa?</span></h2>
+                <button onClick={() => updateField('isLiveOn', !localSettings?.isLiveOn)} className={`w-14 h-7 rounded-full relative transition-all ${localSettings?.isLiveOn ? 'bg-red-500 shadow-lg shadow-red-200' : 'bg-gray-200'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings?.isLiveOn ? 'right-1' : 'left-1'}`} /></button>
              </div>
           </section>
 
@@ -404,7 +406,7 @@ const AdminSettings: React.FC = () => {
                         {item.icon} {item.label}
                     </label>
                     <textarea 
-                      value={(localSettings.institutional as any)[item.key]} 
+                      value={(localSettings?.institutional as any)?.[item.key] || ''} 
                       onChange={(e) => updateInstitutional(item.key, e.target.value)} 
                       className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-xs h-32 md:h-40 resize-none leading-relaxed focus:bg-white transition shadow-inner" 
                       placeholder={`Escreva aqui sobre ${item.label.toLowerCase()}...`}
@@ -422,7 +424,7 @@ const AdminSettings: React.FC = () => {
                 <button onClick={addHotbarMessage} className="bg-[#212529] text-white p-4 rounded-full flex justify-center items-center shadow-xl transition-transform active:scale-90"><Plus size={18} /></button>
             </div>
             <div className="space-y-3">
-                {localSettings.hotbarMessages.map(msg => (
+                {(localSettings?.hotbarMessages || []).map(msg => (
                     <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl flex flex-col sm:flex-row items-center justify-between group gap-4 border border-transparent hover:border-gray-100 transition-all">
                         {editingHotbarId === msg.id ? (
                            <div className="w-full flex items-center gap-3">
@@ -458,7 +460,7 @@ const AdminSettings: React.FC = () => {
               <button onClick={addTestimonial} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
             </div>
             <div className="space-y-6">
-                {(localSettings.testimonials || []).map((t) => (
+                {(localSettings?.testimonials || []).map((t) => (
                     <div key={t.id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
                         <div className="flex justify-between items-start">
                             <input 
@@ -497,36 +499,36 @@ const AdminSettings: React.FC = () => {
             <div className="flex justify-between items-center border-b border-gray-50 pb-6">
               <h2 className="text-xl font-serif flex items-center space-x-3"><Instagram size={20} className="text-[#D5BDAF]" /><span>Instagram Showcase</span></h2>
               <button 
-                onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, enabled: !localSettings.instagramSection.enabled })} 
-                className={`w-14 h-7 rounded-full relative transition-all ${localSettings.instagramSection.enabled ? 'bg-[#D5BDAF] shadow-lg shadow-[#D5BDAF]/20' : 'bg-gray-200'}`}
+                onClick={() => updateField('instagramSection', { ...(localSettings?.instagramSection || {}), enabled: !(localSettings?.instagramSection?.enabled ?? false) })} 
+                className={`w-14 h-7 rounded-full relative transition-all ${localSettings?.instagramSection?.enabled ? 'bg-[#D5BDAF] shadow-lg shadow-[#D5BDAF]/20' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings.instagramSection.enabled ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings?.instagramSection?.enabled ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
             
             <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl mb-4">
                   <div className="flex items-center gap-3">
-                    <Radio size={16} className={localSettings.instagramSection.useApi ? 'text-[#D5BDAF]' : 'text-gray-400'} />
+                    <Radio size={16} className={localSettings?.instagramSection?.useApi ? 'text-[#D5BDAF]' : 'text-gray-400'} />
                     <span className="text-[10px] uppercase font-bold tracking-widest">Usar Instagram Graph API (Automático)</span>
                   </div>
                   <button 
-                    onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, useApi: !localSettings.instagramSection.useApi })} 
-                    className={`w-10 h-5 rounded-full relative transition-all ${localSettings.instagramSection.useApi ? 'bg-[#D5BDAF]' : 'bg-gray-300'}`}
+                    onClick={() => updateField('instagramSection', { ...localSettings?.instagramSection, useApi: !localSettings?.instagramSection?.useApi })} 
+                    className={`w-10 h-5 rounded-full relative transition-all ${localSettings?.instagramSection?.useApi ? 'bg-[#D5BDAF]' : 'bg-gray-300'}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${localSettings.instagramSection.useApi ? 'right-0.5' : 'left-0.5'}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${localSettings?.instagramSection?.useApi ? 'right-0.5' : 'left-0.5'}`} />
                   </button>
                 </div>
 
-                {localSettings.instagramSection.useApi && (
+                {localSettings?.instagramSection?.useApi && (
                   <div className="p-6 border border-gray-100 rounded-[2rem] space-y-6 bg-[#FAF7F2]/30">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Key size={12}/> Access Token</label>
                         <input 
                           type="password" 
-                          value={localSettings.instagramSection.accessToken} 
-                          onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, accessToken: e.target.value })} 
+                          value={localSettings?.instagramSection?.accessToken || ''} 
+                          onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, accessToken: e.target.value })} 
                           className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm"
                           placeholder="Instagram Graph API Token"
                         />
@@ -535,8 +537,8 @@ const AdminSettings: React.FC = () => {
                         <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><User size={12}/> User ID</label>
                         <input 
                           type="text" 
-                          value={localSettings.instagramSection.userId} 
-                          onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, userId: e.target.value })} 
+                          value={localSettings?.instagramSection?.userId || ''} 
+                          onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, userId: e.target.value })} 
                           className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm"
                           placeholder="Sua ID de Usuário"
                         />
@@ -545,8 +547,8 @@ const AdminSettings: React.FC = () => {
                     <div className="space-y-2">
                         <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Hash size={12}/> Qtd. de Posts (6 a 9)</label>
                         <select 
-                          value={localSettings.instagramSection.fetchCount || 8} 
-                          onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, fetchCount: parseInt(e.target.value) })} 
+                          value={localSettings?.instagramSection?.fetchCount || 8} 
+                          onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, fetchCount: parseInt(e.target.value) })} 
                           className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm appearance-none"
                         >
                           {[6,7,8,9].map(n => <option key={n} value={n}>{n} posts</option>)}
@@ -561,8 +563,8 @@ const AdminSettings: React.FC = () => {
                         <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Título da Seção</label>
                         <input 
                             type="text" 
-                            value={localSettings.instagramSection.title} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, title: e.target.value })} 
+                            value={localSettings?.instagramSection?.title || ''} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, title: e.target.value })} 
                             className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
                         />
                     </div>
@@ -570,8 +572,8 @@ const AdminSettings: React.FC = () => {
                         <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Texto do Botão</label>
                         <input 
                             type="text" 
-                            value={localSettings.instagramSection.buttonText} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, buttonText: e.target.value })} 
+                            value={localSettings?.instagramSection?.buttonText || ''} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, buttonText: e.target.value })} 
                             className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
                         />
                     </div>
@@ -581,8 +583,8 @@ const AdminSettings: React.FC = () => {
                         <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Username (ex: @detalhes)</label>
                         <input 
                             type="text" 
-                            value={localSettings.instagramSection.username} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, username: e.target.value })} 
+                            value={localSettings?.instagramSection?.username || ''} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, username: e.target.value })} 
                             className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
                         />
                     </div>
@@ -590,8 +592,8 @@ const AdminSettings: React.FC = () => {
                         <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Link do Perfil</label>
                         <input 
                             type="text" 
-                            value={localSettings.instagramSection.profileUrl} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, profileUrl: e.target.value })} 
+                            value={localSettings?.instagramSection?.profileUrl || ''} 
+                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, profileUrl: e.target.value })} 
                             className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
                         />
                     </div>
@@ -603,7 +605,7 @@ const AdminSettings: React.FC = () => {
                         <button onClick={addInstagramPost} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {localSettings.instagramSection.posts.map((post) => (
+                        {(localSettings?.instagramSection?.posts || []).map((post) => (
                             <div key={post.id} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group">
                                 {post.imageUrl ? (
                                     <img src={post.imageUrl} className="w-full h-full object-cover" />
@@ -622,7 +624,7 @@ const AdminSettings: React.FC = () => {
                                     <input 
                                         type="text" 
                                         placeholder="URL da Imagem"
-                                        value={post.imageUrl}
+                                        value={post.imageUrl || ''}
                                         onChange={(e) => updateInstagramPost(post.id, e.target.value)}
                                         className="w-full px-3 py-2 rounded-lg bg-white/90 text-[9px] outline-none"
                                     />
@@ -641,12 +643,12 @@ const AdminSettings: React.FC = () => {
               <button onClick={addFaq} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
             </div>
             <div className="space-y-6">
-                {(localSettings.faqs || []).map((f) => (
+                {(localSettings?.faqs || []).map((f) => (
                     <div key={f.id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
                         <div className="flex justify-between items-start">
                             <input 
                                 type="text" 
-                                value={f.question} 
+                                value={f.question || ''} 
                                 onChange={(e) => updateFaq(f.id, { question: e.target.value })}
                                 className="bg-transparent font-bold uppercase tracking-widest text-[10px] outline-none border-b border-gray-200 pb-1 w-full mr-12"
                                 placeholder="Pergunta"
@@ -657,7 +659,7 @@ const AdminSettings: React.FC = () => {
                             </div>
                         </div>
                         <textarea 
-                            value={f.answer} 
+                            value={f.answer || ''} 
                             onChange={(e) => updateFaq(f.id, { answer: e.target.value })}
                             className="w-full bg-white p-4 rounded-2xl text-[11px] outline-none h-24 resize-none shadow-inner"
                             placeholder="Resposta detalhada..."
@@ -674,12 +676,12 @@ const AdminSettings: React.FC = () => {
                 <div className="space-y-4">
                     <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-4 italic">Categorias</label>
                     <div className="flex gap-2"><input type="text" value={newCat} onChange={(e) => setNewCat(e.target.value)} className="flex-grow px-6 py-3 bg-gray-50 border rounded-full text-xs outline-none focus:bg-white" /><button onClick={() => addItem('categories', newCat, setNewCat)} className="bg-black text-white p-3 rounded-full"><Plus size={14}/></button></div>
-                    <div className="flex flex-wrap gap-2">{localSettings.categories.map(c => <div key={c} className="bg-gray-100 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{c}<button onClick={() => removeItem('categories', c)} className="text-gray-400 hover:text-red-500">×</button></div>)}</div>
+                    <div className="flex flex-wrap gap-2">{(localSettings?.categories || []).map(c => <div key={c} className="bg-gray-100 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{c}<button onClick={() => removeItem('categories', c)} className="text-gray-400 hover:text-red-500">×</button></div>)}</div>
                 </div>
                 <div className="space-y-4">
                     <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-4 italic">Tags de Destaque</label>
                     <div className="flex gap-2"><input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} className="flex-grow px-6 py-3 bg-gray-50 border rounded-full text-xs outline-none focus:bg-white" /><button onClick={() => addItem('tags', newTag, setNewTag)} className="bg-black text-white p-3 rounded-full"><Plus size={14}/></button></div>
-                    <div className="flex flex-wrap gap-2">{localSettings.tags.map(t => <div key={t} className="bg-[#FAF7F2] border border-[#D5BDAF]/20 text-[#D5BDAF] px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{t}<button onClick={() => removeItem('tags', t)} className="text-[#D5BDAF]/40 hover:text-red-500">×</button></div>)}</div>
+                    <div className="flex flex-wrap gap-2">{(localSettings?.tags || []).map(t => <div key={t} className="bg-[#FAF7F2] border border-[#D5BDAF]/20 text-[#D5BDAF] px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{t}<button onClick={() => removeItem('tags', t)} className="text-[#D5BDAF]/40 hover:text-red-500">×</button></div>)}</div>
                 </div>
             </div>
           </section>
@@ -687,7 +689,7 @@ const AdminSettings: React.FC = () => {
           {/* Segurança */}
           <section id="sec-security" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-10 scroll-mt-36 md:scroll-mt-32">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6"><h2 className="text-xl font-serif flex items-center space-x-3"><ShieldCheck size={20} className="text-[#D5BDAF]" /><span>Acesso ADM</span></h2><button onClick={() => { setEditingUser({username: '', role: 'editor'}); setShowUserModal(true); }} className="text-[#D5BDAF] p-2 hover:bg-[#FAF7F2] rounded-full transition-colors"><UserPlus size={20} /></button></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{adminUsers.map(user => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{(adminUsers || []).map(user => (
                 <div key={user.id} className="p-4 bg-gray-50 rounded-3xl flex items-center justify-between group border border-transparent hover:border-[#D5BDAF]/20 transition-all">
                     <div><p className="text-xs font-bold uppercase tracking-widest text-gray-800">{user.username}</p><p className="text-[8px] text-gray-400 uppercase font-bold">{user.role}</p></div>
                     <div className="flex gap-2">
@@ -707,15 +709,15 @@ const AdminSettings: React.FC = () => {
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[9px] uppercase font-bold text-gray-400 ml-4 tracking-widest">Usuário</label>
-                <input type="text" value={editingUser?.username || ''} onChange={e => setEditingUser({...editingUser!, username: e.target.value})} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm" />
+                <input type="text" value={editingUser?.username || ''} onChange={e => setEditingUser(prev => prev ? {...prev, username: e.target.value} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm" />
               </div>
               <div className="space-y-1">
                 <label className="text-[9px] uppercase font-bold text-gray-400 ml-4 tracking-widest">Senha</label>
-                <input type="password" value={editingUser?.password || ''} onChange={e => setEditingUser({...editingUser!, password: e.target.value})} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm" />
+                <input type="password" value={editingUser?.password || ''} onChange={e => setEditingUser(prev => prev ? {...prev, password: e.target.value} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm" />
               </div>
               <div className="space-y-1">
                 <label className="text-[9px] uppercase font-bold text-gray-400 ml-4 tracking-widest">Cargo</label>
-                <select value={editingUser?.role || 'editor'} onChange={e => setEditingUser({...editingUser!, role: e.target.value as any})} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm appearance-none"><option value="editor">Editor</option><option value="superadmin">Super Admin</option></select>
+                <select value={editingUser?.role || 'editor'} onChange={e => setEditingUser(prev => prev ? {...prev, role: e.target.value as any} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm appearance-none"><option value="editor">Editor</option><option value="superadmin">Super Admin</option></select>
               </div>
             </div>
             <div className="flex flex-col gap-3">

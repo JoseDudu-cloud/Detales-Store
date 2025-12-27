@@ -1,32 +1,38 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store';
 import { BarChart, Users, ShoppingCart, MessageSquare, TrendingUp, Eye, Package, DollarSign, Radio } from 'lucide-react';
 import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
 const AdminDashboard: React.FC = () => {
   const { analytics, products, settings, setSettings, showNotification } = useStore();
+  const [isClient, setIsClient] = useState(false);
+
+  // Recharts needs to wait for mount to calculate container size correctly
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const toggleLive = () => {
-    const nextState = !settings.isLiveOn;
+    const nextState = !(settings?.isLiveOn ?? false);
     setSettings({ ...settings, isLiveOn: nextState });
     showNotification(nextState ? "Live iniciada! ✨" : "Live finalizada.");
   };
 
   const stats = [
-    { label: 'Visitantes', value: analytics.visitors, icon: Users, color: 'text-blue-500' },
-    { label: 'Visualizações', value: analytics.productViews, icon: Eye, color: 'text-purple-500' },
-    { label: 'Carrinhos', value: analytics.addedToCart, icon: ShoppingCart, color: 'text-orange-500' },
-    { label: 'Checkouts Zap', value: analytics.whatsappCheckouts, icon: MessageSquare, color: 'text-green-500' },
+    { label: 'Visitantes', value: analytics?.visitors ?? 0, icon: Users, color: 'text-blue-500' },
+    { label: 'Visualizações', value: analytics?.productViews ?? 0, icon: Eye, color: 'text-purple-500' },
+    { label: 'Carrinhos', value: analytics?.addedToCart ?? 0, icon: ShoppingCart, color: 'text-orange-500' },
+    { label: 'Checkouts Zap', value: analytics?.whatsappCheckouts ?? 0, icon: MessageSquare, color: 'text-green-500' },
   ];
 
-  const bestSellersData = [...products]
-    .sort((a, b) => b.viewCount - a.viewCount)
+  const bestSellersData = [...(products || [])]
+    .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     .slice(0, 5)
-    .map(p => ({ name: p.name.split(' ')[0], views: p.viewCount }));
+    .map(p => ({ name: (p.name || '').split(' ')[0], views: p.viewCount || 0 }));
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in w-full max-w-full overflow-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <h1 className="text-3xl font-serif">Visão Geral</h1>
@@ -36,11 +42,11 @@ const AdminDashboard: React.FC = () => {
         {/* Quick Live Toggle */}
         <button 
           onClick={toggleLive}
-          className={`flex items-center space-x-3 px-8 py-4 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold shadow-lg transition-all border-2 ${settings.isLiveOn ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-100 text-gray-400'}`}
+          className={`flex items-center space-x-3 px-8 py-4 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold shadow-lg transition-all border-2 ${settings?.isLiveOn ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-100 text-gray-400'}`}
         >
-          <div className={`w-2 h-2 rounded-full ${settings.isLiveOn ? 'bg-red-600 animate-pulse' : 'bg-gray-400'}`} />
+          <div className={`w-2 h-2 rounded-full ${settings?.isLiveOn ? 'bg-red-600 animate-pulse' : 'bg-gray-400'}`} />
           <Radio size={14} />
-          <span>{settings.isLiveOn ? 'Live está ONLINE' : 'Iniciar Live Commerce'}</span>
+          <span>{settings?.isLiveOn ? 'Live está ONLINE' : 'Iniciar Live Commerce'}</span>
         </button>
       </div>
 
@@ -62,23 +68,25 @@ const AdminDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Chart */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm h-96">
+        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm h-[400px]">
           <div className="flex justify-between items-center mb-8">
             <h3 className="font-bold uppercase tracking-widest text-xs text-gray-700">Produtos Mais Visualizados</h3>
             <TrendingUp size={16} className="text-gray-400" />
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ReBarChart data={bestSellersData}>
-                <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
-                <Tooltip />
-                <Bar dataKey="views" radius={[4, 4, 0, 0]}>
-                  {bestSellersData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#D5BDAF' : '#F5EBE0'} />
-                  ))}
-                </Bar>
-              </ReBarChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full min-h-[250px] relative">
+            {isClient && (
+              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+                <ReBarChart data={bestSellersData}>
+                  <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+                  <Tooltip />
+                  <Bar dataKey="views" radius={[4, 4, 0, 0]}>
+                    {bestSellersData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? '#D5BDAF' : '#F5EBE0'} />
+                    ))}
+                  </Bar>
+                </ReBarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
