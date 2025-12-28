@@ -203,25 +203,28 @@ const AdminSettings: React.FC = () => {
     }
   };
 
+  // Fixed: Removed optional chaining on localSettings.instagramSection to prevent missing required fields errors
   const addInstagramPost = () => {
     const newPost = { id: Math.random().toString(36).substr(2, 9), imageUrl: '' };
     updateField('instagramSection', {
-      ...(localSettings?.instagramSection || {}),
-      posts: [...(localSettings?.instagramSection?.posts || []), newPost]
+      ...localSettings.instagramSection,
+      posts: [...localSettings.instagramSection.posts, newPost]
     });
   };
 
+  // Fixed: Removed optional chaining on localSettings.instagramSection to prevent missing required fields errors
   const updateInstagramPost = (id: string, url: string) => {
     updateField('instagramSection', {
-      ...localSettings?.instagramSection,
-      posts: (localSettings?.instagramSection?.posts || []).map(p => p.id === id ? { ...p, imageUrl: url } : p)
+      ...localSettings.instagramSection,
+      posts: localSettings.instagramSection.posts.map(p => p.id === id ? { ...p, imageUrl: url } : p)
     });
   };
 
+  // Fixed: Removed optional chaining on localSettings.instagramSection to prevent missing required fields errors
   const removeInstagramPost = (id: string) => {
     updateField('instagramSection', {
-      ...localSettings?.instagramSection,
-      posts: (localSettings?.instagramSection?.posts || []).filter(p => p.id !== id)
+      ...localSettings.instagramSection,
+      posts: localSettings.instagramSection.posts.filter(p => p.id !== id)
     });
   };
 
@@ -443,27 +446,27 @@ const AdminSettings: React.FC = () => {
           <section id="sec-instagram" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6">
               <h2 className="text-xl font-serif flex items-center space-x-3"><Instagram size={20} className="text-[#D5BDAF]" /><span>Instagram Showcase</span></h2>
-              <button onClick={() => updateField('instagramSection', { ...(localSettings?.instagramSection || {}), enabled: !(localSettings?.instagramSection?.enabled ?? false) })} className={`w-14 h-7 rounded-full relative transition-all ${localSettings?.instagramSection?.enabled ? 'bg-[#D5BDAF] shadow-lg shadow-[#D5BDAF]/20' : 'bg-gray-200'}`}>
-                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings?.instagramSection?.enabled ? 'right-1' : 'left-1'}`} />
+              <button onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, enabled: !localSettings.instagramSection.enabled })} className={`w-14 h-7 rounded-full relative transition-all ${localSettings.instagramSection.enabled ? 'bg-[#D5BDAF] shadow-lg shadow-[#D5BDAF]/20' : 'bg-gray-200'}`}>
+                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings.instagramSection.enabled ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
             
             <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl mb-4">
                   <div className="flex items-center gap-3">
-                    <Radio size={16} className={localSettings?.instagramSection?.useApi ? 'text-[#D5BDAF]' : 'text-gray-400'} />
+                    <Radio size={16} className={localSettings.instagramSection.useApi ? 'text-[#D5BDAF]' : 'text-gray-400'} />
                     <span className="text-[10px] uppercase font-bold tracking-widest">Usar Instagram API</span>
                   </div>
-                  <button onClick={() => updateField('instagramSection', { ...(localSettings?.instagramSection || {}), useApi: !localSettings?.instagramSection?.useApi })} className={`w-10 h-5 rounded-full relative transition-all ${localSettings?.instagramSection?.useApi ? 'bg-[#D5BDAF]' : 'bg-gray-300'}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${localSettings?.instagramSection?.useApi ? 'right-0.5' : 'left-0.5'}`} />
+                  <button onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, useApi: !localSettings.instagramSection.useApi })} className={`w-10 h-5 rounded-full relative transition-all ${localSettings.instagramSection.useApi ? 'bg-[#D5BDAF]' : 'bg-gray-300'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${localSettings.instagramSection.useApi ? 'right-0.5' : 'left-0.5'}`} />
                   </button>
                 </div>
 
-                {localSettings?.instagramSection?.useApi && (
+                {localSettings.instagramSection.useApi && (
                   <div className="p-6 border border-gray-100 rounded-[2rem] space-y-6 bg-[#FAF7F2]/30">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <input type="password" value={localSettings?.instagramSection?.accessToken || ''} onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, accessToken: e.target.value })} className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm" placeholder="Access Token"/>
-                        <input type="text" value={localSettings?.instagramSection?.userId || ''} onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, userId: e.target.value })} className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm" placeholder="User ID"/>
+                        <input type="password" value={localSettings.instagramSection.accessToken || ''} onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, accessToken: e.target.value })} className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm" placeholder="Access Token"/>
+                        <input type="text" value={localSettings.instagramSection.userId || ''} onChange={(e) => updateField('instagramSection', { ...localSettings.instagramSection, userId: e.target.value })} className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm" placeholder="User ID"/>
                     </div>
                   </div>
                 )}
@@ -474,7 +477,7 @@ const AdminSettings: React.FC = () => {
                         <button onClick={addInstagramPost} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {(localSettings?.instagramSection?.posts || []).map((post) => (
+                        {(localSettings.instagramSection.posts || []).map((post) => (
                             <div key={post.id} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group">
                                 {post.imageUrl ? <img src={post.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={24} /></div>}
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col p-4 justify-between">
