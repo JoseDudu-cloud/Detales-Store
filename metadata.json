@@ -1,6 +1,6 @@
 {
-  "name": "Detalhes Store - Premium Jewelry Catalog",
-  "description": "An elegant, conversion-optimized feminine jewelry catalog with a robust admin dashboard and WhatsApp checkout, designed for premium live commerce experiences.",
-  "restorePoint": "site_viavel",
+  "name": "Detalhes Store - Global Premium Jewelry Catalog",
+  "description": "An elegant, conversion-optimized feminine jewelry catalog with a robust admin dashboard and WhatsApp checkout, now with global cloud persistence.",
+  "restorePoint": "site_viavel_before_global_json",
   "requestFramePermissions": []
 }

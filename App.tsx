@@ -16,7 +16,7 @@ import AdminLogin from './pages/Admin/Login';
 
 // Layouts
 import Layout from './components/Layout';
-import { LayoutDashboard, Package, Settings as SettingsIcon, LogOut, ChevronLeft, ShieldCheck, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, Settings as SettingsIcon, LogOut, ChevronLeft, ShieldCheck, Menu, X, Sparkles } from 'lucide-react';
 
 const { 
   MemoryRouter: Router, 
@@ -34,6 +34,20 @@ const AdminGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (!admin) return <Navigate to="/admin/login" replace />;
   return <>{children}</>;
 };
+
+const LoadingScreen: React.FC = () => (
+  <div className="fixed inset-0 bg-[#FDFBF9] flex flex-col items-center justify-center z-[200]">
+    <div className="relative mb-8">
+      <div className="w-24 h-24 border-4 border-[#D5BDAF]/20 rounded-full animate-ping absolute inset-0"></div>
+      <div className="w-24 h-24 border-t-4 border-[#D5BDAF] rounded-full animate-spin"></div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Sparkles className="text-[#D5BDAF] animate-pulse" size={32} />
+      </div>
+    </div>
+    <h2 className="font-serif text-2xl tracking-[0.2em] animate-pulse">DETALHES</h2>
+    <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 mt-4 italic font-bold">Sincronizando curadoria global...</p>
+  </div>
+);
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
@@ -156,23 +170,33 @@ const PolicyPage: React.FC = () => {
     );
 };
 
+const AppContent: React.FC = () => {
+  const { isInitialLoading } = useStore();
+
+  if (isInitialLoading) return <LoadingScreen />;
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/catalog" element={<Layout><Catalog /></Layout>} />
+        <Route path="/gifts" element={<Layout><Catalog /></Layout>} />
+        <Route path="/product/:id" element={<Layout><ProductDetail /></Layout>} />
+        <Route path="/cart" element={<Layout><Cart /></Layout>} />
+        <Route path="/policy/:type" element={<Layout><PolicyPage /></Layout>} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<AdminGuard><AdminLayout><AdminDashboard /></AdminLayout></AdminGuard>} />
+        <Route path="/admin/products" element={<AdminGuard><AdminLayout><AdminProducts /></AdminLayout></AdminGuard>} />
+        <Route path="/admin/settings" element={<AdminGuard><AdminLayout><AdminSettings /></AdminLayout></AdminGuard>} />
+      </Routes>
+    </Router>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <StoreProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Layout><Home /></Layout>} />
-          <Route path="/catalog" element={<Layout><Catalog /></Layout>} />
-          <Route path="/gifts" element={<Layout><Catalog /></Layout>} />
-          <Route path="/product/:id" element={<Layout><ProductDetail /></Layout>} />
-          <Route path="/cart" element={<Layout><Cart /></Layout>} />
-          <Route path="/policy/:type" element={<Layout><PolicyPage /></Layout>} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminGuard><AdminLayout><AdminDashboard /></AdminLayout></AdminGuard>} />
-          <Route path="/admin/products" element={<AdminGuard><AdminLayout><AdminProducts /></AdminLayout></AdminGuard>} />
-          <Route path="/admin/settings" element={<AdminGuard><AdminLayout><AdminSettings /></AdminLayout></AdminGuard>} />
-        </Routes>
-      </Router>
+      <AppContent />
     </StoreProvider>
   );
 };

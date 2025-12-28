@@ -1,52 +1,38 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { StoreSettings, Product, AnalyticsData, CartItem, AdminUser, Tag } from './types';
 import { INITIAL_SETTINGS, INITIAL_PRODUCTS } from './constants';
 
+// --- PERSISTENCE CONFIGURATION ---
+// These would typically come from environment variables.
+// If not provided, the store will gracefully fallback to LocalStorage/Defaults.
+const SB_URL = (process.env as any).SUPABASE_URL || '';
+const SB_KEY = (process.env as any).SUPABASE_ANON_KEY || '';
+
+const supabase = SB_URL && SB_KEY ? createClient(SB_URL, SB_KEY) : null;
+
 const safeLocalStorage = {
   getItem: (key: string) => {
-    try {
-      return localStorage.getItem(key);
-    } catch (e) {
-      console.warn('Storage access denied', e);
-      return null;
-    }
+    try { return localStorage.getItem(key); } catch (e) { return null; }
   },
   setItem: (key: string, value: string) => {
-    try {
-      localStorage.setItem(key, value);
-    } catch (e) {
-      console.warn('Storage access denied', e);
-    }
+    try { localStorage.setItem(key, value); } catch (e) {}
   }
 };
 
 const safeSessionStorage = {
   getItem: (key: string) => {
-    try {
-      return sessionStorage.getItem(key);
-    } catch (e) {
-      console.warn('Storage access denied', e);
-      return null;
-    }
+    try { return sessionStorage.getItem(key); } catch (e) { return null; }
   },
   setItem: (key: string, value: string) => {
-    try {
-      sessionStorage.setItem(key, value);
-    } catch (e) {
-      console.warn('Storage access denied', e);
-    }
+    try { sessionStorage.setItem(key, value); } catch (e) {}
   },
   removeItem: (key: string) => {
-    try {
-      sessionStorage.removeItem(key);
-    } catch (e) {
-      console.warn('Storage access denied', e);
-    }
+    try { sessionStorage.removeItem(key); } catch (e) {}
   }
 };
 
-// SHA-256 Hashing implementation using Web Crypto API
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
@@ -84,141 +70,126 @@ interface StoreContextType {
   deleteAdminUser: (id: string) => void;
   notifications: Notification[];
   showNotification: (message: string) => void;
+  isInitialLoading: boolean;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-// Updated credentials: admin / admin
 const DEFAULT_ADMIN: AdminUser = {
   id: 'default-admin',
   username: 'admin',
-  passwordHash: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', // SHA-256 for 'admin'
+  passwordHash: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',
   role: 'superadmin',
   createdAt: 1700000000000
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettingsState] = useState<StoreSettings>(() => {
-    const saved = safeLocalStorage.getItem('detalhes_settings');
-    if (!saved) return INITIAL_SETTINGS;
-    
-    try {
-      const parsed = JSON.parse(saved);
-      // Deep merge to ensure all keys from INITIAL_SETTINGS exist
-      // This prevents white screens when new config features are added
-      return {
-        ...INITIAL_SETTINGS,
-        ...parsed,
-        socialLinks: parsed.socialLinks ? { ...INITIAL_SETTINGS.socialLinks, ...parsed.socialLinks } : INITIAL_SETTINGS.socialLinks,
-        institutional: parsed.institutional ? { ...INITIAL_SETTINGS.institutional, ...parsed.institutional } : INITIAL_SETTINGS.institutional,
-        instagramSection: parsed.instagramSection ? { ...INITIAL_SETTINGS.instagramSection, ...parsed.instagramSection } : INITIAL_SETTINGS.instagramSection,
-      };
-    } catch (e) {
-      console.error("Failed to parse settings", e);
-      return INITIAL_SETTINGS;
-    }
-  });
-
-  const [products, setProductsState] = useState<Product[]>(() => {
-    const saved = safeLocalStorage.getItem('detalhes_products');
-    try {
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-    } catch (e) {
-      return INITIAL_PRODUCTS;
-    }
-  });
-
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = safeLocalStorage.getItem('detalhes_cart');
-    try {
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-
-  const [admin, setAdmin] = useState<AdminUser | null>(() => {
-    const saved = safeSessionStorage.getItem('detalhes_admin');
-    try {
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
-    const saved = safeLocalStorage.getItem('detalhes_admin_users');
-    let users: AdminUser[] = [];
-    try {
-      users = saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      users = [];
-    }
-    
-    // Check if the default admin needs update or initialization
-    const hasDefaultAdmin = users.find(u => u.id === 'default-admin');
-    if (!hasDefaultAdmin) {
-      users = [DEFAULT_ADMIN, ...users];
-    } else if (hasDefaultAdmin.username !== DEFAULT_ADMIN.username || hasDefaultAdmin.passwordHash !== DEFAULT_ADMIN.passwordHash) {
-      // Force update the default admin credentials if they don't match the current code's expectations
-      users = users.map(u => u.id === 'default-admin' ? DEFAULT_ADMIN : u);
-    }
-    
-    return users;
-  });
-
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [settings, setSettingsState] = useState<StoreSettings>(INITIAL_SETTINGS);
+  const [products, setProductsState] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [admin, setAdmin] = useState<AdminUser | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([DEFAULT_ADMIN]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  const [analytics, setAnalytics] = useState<AnalyticsData>(() => {
-    const saved = safeLocalStorage.getItem('detalhes_analytics');
-    try {
-      return saved ? JSON.parse(saved) : {
-        visitors: 842,
-        productViews: 2450,
-        addedToCart: 312,
-        whatsappCheckouts: 94,
-        abandonedCarts: 218,
-        revenue: 18450
-      };
-    } catch (e) {
-      return { visitors: 0, productViews: 0, addedToCart: 0, whatsappCheckouts: 0, abandonedCarts: 0, revenue: 0 };
-    }
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
+    visitors: 0, productViews: 0, addedToCart: 0, whatsappCheckouts: 0, abandonedCarts: 0, revenue: 0
   });
 
+  // --- GLOBAL DATA HYDRATION ---
   useEffect(() => {
-    safeLocalStorage.setItem('detalhes_settings', JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    safeLocalStorage.setItem('detalhes_admin_users', JSON.stringify(adminUsers));
-  }, [adminUsers]);
-
-  useEffect(() => {
-    const updatedProducts = products.map(p => {
-      const isNew = (Date.now() - p.createdAt) < (1000 * 60 * 60 * 24 * 7); 
-      const isBestseller = p.cartAddCount > 50 || p.viewCount > 500;
+    const hydrate = async () => {
+      setIsInitialLoading(true);
       
-      const newTags = [...p.tags.filter(t => t !== Tag.NEW && t !== Tag.BESTSELLER)];
-      if (isNew) newTags.push(Tag.NEW);
-      if (isBestseller) newTags.push(Tag.BESTSELLER);
+      // Load local cart/session
+      const savedCart = safeLocalStorage.getItem('detalhes_cart');
+      if (savedCart) {
+        try { setCart(JSON.parse(savedCart)); } catch (e) {}
+      }
+      const savedAdmin = safeSessionStorage.getItem('detalhes_admin');
+      if (savedAdmin) {
+        try { setAdmin(JSON.parse(savedAdmin)); } catch (e) {}
+      }
+
+      if (supabase) {
+        try {
+          // Fetch global state from Supabase
+          // We use a single table 'store_configs' with JSONB columns for simplicity
+          const { data, error } = await supabase
+            .from('store_configs')
+            .select('*')
+            .single();
+
+          if (!error && data) {
+            if (data.settings) setSettingsState({ ...INITIAL_SETTINGS, ...data.settings });
+            if (data.products) setProductsState(data.products);
+            if (data.analytics) setAnalytics(data.analytics);
+            if (data.admin_users) setAdminUsers(data.admin_users);
+          } else if (error && error.code === 'PGRST116') {
+            // Table is empty, initialize it
+            await supabase.from('store_configs').insert([{
+              id: 1,
+              settings: INITIAL_SETTINGS,
+              products: INITIAL_PRODUCTS,
+              analytics: { visitors: 0, productViews: 0, addedToCart: 0, whatsappCheckouts: 0, abandonedCarts: 0, revenue: 0 },
+              admin_users: [DEFAULT_ADMIN]
+            }]);
+          }
+        } catch (e) {
+          console.error("Failed to hydrate from global storage", e);
+        }
+      } else {
+        // Fallback to LocalStorage for offline/local dev
+        const savedSettings = safeLocalStorage.getItem('detalhes_settings');
+        if (savedSettings) {
+          try { setSettingsState({ ...INITIAL_SETTINGS, ...JSON.parse(savedSettings) }); } catch (e) {}
+        }
+        const savedProducts = safeLocalStorage.getItem('detalhes_products');
+        if (savedProducts) {
+          try { setProductsState(JSON.parse(savedProducts)); } catch (e) {}
+        }
+        const savedAnalytics = safeLocalStorage.getItem('detalhes_analytics');
+        if (savedAnalytics) {
+          try { setAnalytics(JSON.parse(savedAnalytics)); } catch (e) {}
+        }
+      }
       
-      return { ...p, tags: Array.from(new Set(newTags)) };
-    });
-    
-    if (JSON.stringify(updatedProducts) !== JSON.stringify(products)) {
-        setProductsState(updatedProducts);
+      setIsInitialLoading(false);
+    };
+
+    hydrate();
+  }, []);
+
+  // --- PERSISTENCE HELPERS ---
+  const syncGlobal = useCallback(async (key: string, value: any) => {
+    safeLocalStorage.setItem(`detalhes_${key}`, JSON.stringify(value));
+    if (supabase) {
+      try {
+        await supabase.from('store_configs').update({ [key]: value }).eq('id', 1);
+      } catch (e) {
+        console.warn("Global sync failed, will retry later", e);
+      }
     }
-    
-    safeLocalStorage.setItem('detalhes_products', JSON.stringify(products));
-  }, [products]);
+  }, []);
 
+  // Update effect for cart (always local)
   useEffect(() => {
     safeLocalStorage.setItem('detalhes_cart', JSON.stringify(cart));
   }, [cart]);
 
+  // Record visitors globally (once per session)
   useEffect(() => {
-    safeLocalStorage.setItem('detalhes_analytics', JSON.stringify(analytics));
-  }, [analytics]);
+    if (!isInitialLoading) {
+      const visited = safeSessionStorage.getItem('detalhes_visited');
+      if (!visited) {
+        setAnalytics(prev => {
+          const updated = { ...prev, visitors: prev.visitors + 1 };
+          syncGlobal('analytics', updated);
+          return updated;
+        });
+        safeSessionStorage.setItem('detalhes_visited', 'true');
+      }
+    }
+  }, [isInitialLoading, syncGlobal]);
 
   const showNotification = (message: string) => {
     const id = Date.now();
@@ -228,23 +199,42 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, 3000);
   };
 
-  const setSettings = (newSettings: StoreSettings) => setSettingsState(newSettings);
-  const setProducts = (newProducts: Product[]) => setProductsState(newProducts);
+  const setSettings = (newSettings: StoreSettings) => {
+    setSettingsState(newSettings);
+    syncGlobal('settings', newSettings);
+  };
+
+  const setProducts = (newProducts: Product[]) => {
+    setProductsState(newProducts);
+    syncGlobal('products', newProducts);
+  };
   
-  const addProduct = (p: Product) => setProductsState(prev => [...prev, p]);
-  const updateProduct = (p: Product) => setProductsState(prev => prev.map(item => item.id === p.id ? p : item));
-  const deleteProduct = (id: string) => setProductsState(prev => prev.filter(item => item.id !== id));
+  const addProduct = (p: Product) => {
+    const next = [...products, p];
+    setProductsState(next);
+    syncGlobal('products', next);
+  };
+
+  const updateProduct = (p: Product) => {
+    const next = products.map(item => item.id === p.id ? p : item);
+    setProductsState(next);
+    syncGlobal('products', next);
+  };
+
+  const deleteProduct = (id: string) => {
+    const next = products.filter(item => item.id !== id);
+    setProductsState(next);
+    syncGlobal('products', next);
+  };
 
   const login = async (u: string, p: string) => {
     const normalizedUser = u.trim().toLowerCase();
     const normalizedPass = p.trim();
-    
     const inputHash = await hashPassword(normalizedPass);
     const user = adminUsers.find(user => 
       user.username.trim().toLowerCase() === normalizedUser && 
       user.passwordHash === inputHash
     );
-    
     if (user) {
       setAdmin(user);
       safeSessionStorage.setItem('detalhes_admin', JSON.stringify(user));
@@ -267,6 +257,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return u;
     }));
     setAdminUsers(updatedUsers);
+    syncGlobal('admin_users', updatedUsers);
     
     if (admin && admin.id === id) {
       const updatedAdmin = updatedUsers.find(u => u.id === id)!;
@@ -283,7 +274,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       role,
       createdAt: Date.now()
     };
-    setAdminUsers(prev => [...prev, newUser]);
+    const next = [...adminUsers, newUser];
+    setAdminUsers(next);
+    syncGlobal('admin_users', next);
   };
 
   const deleteAdminUser = (id: string) => {
@@ -291,7 +284,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         showNotification("Não é possível excluir o administrador principal ou sua própria conta.");
         return;
     }
-    setAdminUsers(prev => prev.filter(u => u.id !== id));
+    const next = adminUsers.filter(u => u.id !== id);
+    setAdminUsers(next);
+    syncGlobal('admin_users', next);
     showNotification("Administrador removido.");
   };
 
@@ -322,15 +317,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const clearCart = () => setCart([]);
 
   const recordEvent = (type: 'view' | 'cart' | 'checkout', pId?: string) => {
-    setAnalytics(prev => ({
-      ...prev,
-      productViews: type === 'view' ? prev.productViews + 1 : prev.productViews,
-      addedToCart: type === 'cart' ? prev.addedToCart + 1 : prev.addedToCart,
-      whatsappCheckouts: type === 'checkout' ? prev.whatsappCheckouts + 1 : prev.whatsappCheckouts,
-    }));
+    const updatedAnalytics = {
+      ...analytics,
+      productViews: type === 'view' ? analytics.productViews + 1 : analytics.productViews,
+      addedToCart: type === 'cart' ? analytics.addedToCart + 1 : analytics.addedToCart,
+      whatsappCheckouts: type === 'checkout' ? analytics.whatsappCheckouts + 1 : analytics.whatsappCheckouts,
+    };
+    
+    setAnalytics(updatedAnalytics);
+    syncGlobal('analytics', updatedAnalytics);
     
     if (pId) {
-        setProductsState(prev => prev.map(p => {
+        const nextProducts = products.map(p => {
             if (p.id === pId) {
                 return {
                     ...p,
@@ -339,7 +337,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 };
             }
             return p;
-        }));
+        });
+        setProductsState(nextProducts);
+        syncGlobal('products', nextProducts);
     }
   };
 
@@ -350,7 +350,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         settings, setSettings, products, setProducts, addProduct, updateProduct, deleteProduct,
         cart, addToCart, removeFromCart, updateCartQuantity, clearCart, 
         analytics, recordEvent, admin, adminUsers, login, logout, updateAdminUser, 
-        createAdminUser, deleteAdminUser, notifications, showNotification
+        createAdminUser, deleteAdminUser, notifications, showNotification, isInitialLoading
       },
     },
     children

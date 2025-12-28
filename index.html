@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --hotbar-height: 32px;
@@ -19,10 +19,24 @@
             -webkit-tap-highlight-color: transparent;
             min-width: 320px;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+        
         h1, h2, h3, .font-serif {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Cormorant Garamond', serif;
+            letter-spacing: -0.01em;
+            font-weight: 600;
         }
+
+        button, 
+        a.uppercase, 
+        span.uppercase,
+        .tracking-widest,
+        .font-brand {
+            font-family: 'Montserrat', sans-serif;
+        }
+
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -39,7 +53,6 @@
             display: none;
         }
 
-        /* Melhoria de legibilidade em telas pequenas */
         @media (max-width: 640px) {
             html {
                 font-size: 14px;
@@ -70,13 +83,11 @@
           animation: slide-right 0.3s ease-out forwards;
         }
 
-        /* Prevenção de quebra de layout em botões com texto longo */
         button, a {
             word-break: keep-all;
             white-space: nowrap;
         }
         
-        /* Ajuste para inputs em iOS para evitar zoom automático */
         input[type="text"], input[type="number"], textarea {
             font-size: 16px !important;
         }
@@ -84,6 +95,16 @@
             input[type="text"], input[type="number"], textarea {
                 font-size: 14px !important;
             }
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
     </style>
 <script type="importmap">
@@ -94,7 +115,8 @@
     "react/": "https://esm.sh/react@^19.2.3/",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0"
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
   }
 }
 </script>
