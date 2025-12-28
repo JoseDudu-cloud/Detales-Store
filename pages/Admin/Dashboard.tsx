@@ -39,7 +39,6 @@ const AdminDashboard: React.FC = () => {
           <p className="text-sm text-gray-500 uppercase tracking-widest mt-1">Como anda sua loja hoje</p>
         </div>
         
-        {/* Quick Live Toggle */}
         <button 
           onClick={toggleLive}
           className={`flex items-center space-x-3 px-8 py-4 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold shadow-lg transition-all border-2 ${settings?.isLiveOn ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-100 text-gray-400'}`}
@@ -50,7 +49,6 @@ const AdminDashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {stats.map((s, idx) => (
           <div key={idx} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
@@ -67,7 +65,6 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Chart */}
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm h-[400px]">
           <div className="flex justify-between items-center mb-8">
             <h3 className="font-bold uppercase tracking-widest text-xs text-gray-700">Produtos Mais Visualizados</h3>
@@ -75,22 +72,23 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div className="h-64 w-full min-h-[250px] relative">
             {isClient && (
-              <ResponsiveContainer width="100%" height="100%" minHeight={250}>
-                <ReBarChart data={bestSellersData}>
-                  <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
-                  <Tooltip />
-                  <Bar dataKey="views" radius={[4, 4, 0, 0]}>
-                    {bestSellersData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#D5BDAF' : '#F5EBE0'} />
-                    ))}
-                  </Bar>
-                </ReBarChart>
-              </ResponsiveContainer>
+              <div style={{ width: '100%', height: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ReBarChart data={bestSellersData}>
+                    <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+                    <Tooltip />
+                    <Bar dataKey="views" radius={[4, 4, 0, 0]}>
+                      {bestSellersData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#D5BDAF' : '#F5EBE0'} />
+                      ))}
+                    </Bar>
+                  </ReBarChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Top Actions */}
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
           <h3 className="font-bold uppercase tracking-widest text-xs text-gray-700 mb-8">Resumo de Atividade</h3>
           <div className="space-y-6">
@@ -99,20 +97,18 @@ const AdminDashboard: React.FC = () => {
                 <div className="bg-white p-2 rounded-full shadow-sm"><Package size={16} /></div>
                 <div>
                   <p className="text-sm font-bold">Estoque Baixo</p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">3 produtos precisam de atenção</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Atenção requerida</p>
                 </div>
               </div>
-              <button className="text-[10px] uppercase font-bold text-[#D5BDAF] hover:underline">Ver</button>
             </div>
             <div className="flex items-center justify-between p-6 bg-[#FAF7F2] rounded-3xl">
               <div className="flex items-center space-x-4">
                 <div className="bg-white p-2 rounded-full shadow-sm"><DollarSign size={16} /></div>
                 <div>
                   <p className="text-sm font-bold">Ticket Médio</p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Calculado em R$ 245,00</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Monitoramento global</p>
                 </div>
               </div>
-              <TrendingUp size={16} className="text-green-500" />
             </div>
           </div>
         </div>

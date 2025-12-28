@@ -5,30 +5,34 @@ import { StoreSettings, Product, AnalyticsData, CartItem, AdminUser, Tag } from 
 import { INITIAL_SETTINGS, INITIAL_PRODUCTS } from './constants';
 
 // --- PERSISTENCE CONFIGURATION ---
-// These would typically come from environment variables.
-// If not provided, the store will gracefully fallback to LocalStorage/Defaults.
-const SB_URL = (process.env as any).SUPABASE_URL || '';
-const SB_KEY = (process.env as any).SUPABASE_ANON_KEY || '';
+// Supabase handles global state synchronization across all users/devices.
+const SB_URL = (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || '';
+const SB_KEY = (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || '';
 
 const supabase = SB_URL && SB_KEY ? createClient(SB_URL, SB_KEY) : null;
 
 const safeLocalStorage = {
   getItem: (key: string) => {
+    if (typeof window === 'undefined') return null;
     try { return localStorage.getItem(key); } catch (e) { return null; }
   },
   setItem: (key: string, value: string) => {
+    if (typeof window === 'undefined') return;
     try { localStorage.setItem(key, value); } catch (e) {}
   }
 };
 
 const safeSessionStorage = {
   getItem: (key: string) => {
+    if (typeof window === 'undefined') return null;
     try { return sessionStorage.getItem(key); } catch (e) { return null; }
   },
   setItem: (key: string, value: string) => {
+    if (typeof window === 'undefined') return;
     try { sessionStorage.setItem(key, value); } catch (e) {}
   },
   removeItem: (key: string) => {
+    if (typeof window === 'undefined') return;
     try { sessionStorage.removeItem(key); } catch (e) {}
   }
 };
@@ -83,6 +87,29 @@ const DEFAULT_ADMIN: AdminUser = {
   createdAt: 1700000000000
 };
 
+/**
+ * Merges loaded settings with INITIAL_SETTINGS to prevent crashes
+ * caused by accessing newly added properties that don't exist in old saved data.
+ */
+const mergeWithDefaults = (loaded: any): StoreSettings => {
+  return {
+    ...INITIAL_SETTINGS,
+    ...loaded,
+    instagramSection: {
+      ...INITIAL_SETTINGS.instagramSection,
+      ...(loaded?.instagramSection || {})
+    },
+    socialLinks: {
+      ...INITIAL_SETTINGS.socialLinks,
+      ...(loaded?.socialLinks || {})
+    },
+    institutional: {
+      ...INITIAL_SETTINGS.institutional,
+      ...(loaded?.institutional || {})
+    }
+  };
+};
+
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [settings, setSettingsState] = useState<StoreSettings>(INITIAL_SETTINGS);
@@ -100,7 +127,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const hydrate = async () => {
       setIsInitialLoading(true);
       
-      // Load local cart/session
+      // Load local cart/session (browser specific)
       const savedCart = safeLocalStorage.getItem('detalhes_cart');
       if (savedCart) {
         try { setCart(JSON.parse(savedCart)); } catch (e) {}
@@ -112,36 +139,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (supabase) {
         try {
-          // Fetch global state from Supabase
-          // We use a single table 'store_configs' with JSONB columns for simplicity
+          // Fetch global state from Supabase - Shared across all devices
           const { data, error } = await supabase
             .from('store_configs')
             .select('*')
             .single();
 
           if (!error && data) {
-            if (data.settings) setSettingsState({ ...INITIAL_SETTINGS, ...data.settings });
+            if (data.settings) setSettingsState(mergeWithDefaults(data.settings));
             if (data.products) setProductsState(data.products);
             if (data.analytics) setAnalytics(data.analytics);
             if (data.admin_users) setAdminUsers(data.admin_users);
-          } else if (error && error.code === 'PGRST116') {
-            // Table is empty, initialize it
-            await supabase.from('store_configs').insert([{
+          } else if (error && (error.code === 'PGRST116' || error.message?.includes('not found'))) {
+            // Table is empty or missing, initialize with defaults
+            await supabase.from('store_configs').upsert([{
               id: 1,
               settings: INITIAL_SETTINGS,
               products: INITIAL_PRODUCTS,
               analytics: { visitors: 0, productViews: 0, addedToCart: 0, whatsappCheckouts: 0, abandonedCarts: 0, revenue: 0 },
               admin_users: [DEFAULT_ADMIN]
-            }]);
+            }], { onConflict: 'id' });
           }
         } catch (e) {
-          console.error("Failed to hydrate from global storage", e);
+          console.error("Global storage hydration failed", e);
         }
       } else {
-        // Fallback to LocalStorage for offline/local dev
+        // Fallback to LocalStorage if no Global DB is configured
         const savedSettings = safeLocalStorage.getItem('detalhes_settings');
         if (savedSettings) {
-          try { setSettingsState({ ...INITIAL_SETTINGS, ...JSON.parse(savedSettings) }); } catch (e) {}
+          try { setSettingsState(mergeWithDefaults(JSON.parse(savedSettings))); } catch (e) {}
         }
         const savedProducts = safeLocalStorage.getItem('detalhes_products');
         if (savedProducts) {
@@ -166,23 +192,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         await supabase.from('store_configs').update({ [key]: value }).eq('id', 1);
       } catch (e) {
-        console.warn("Global sync failed, will retry later", e);
+        console.warn("Global sync failed", e);
       }
     }
   }, []);
 
-  // Update effect for cart (always local)
   useEffect(() => {
     safeLocalStorage.setItem('detalhes_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Record visitors globally (once per session)
   useEffect(() => {
     if (!isInitialLoading) {
       const visited = safeSessionStorage.getItem('detalhes_visited');
       if (!visited) {
         setAnalytics(prev => {
-          const updated = { ...prev, visitors: prev.visitors + 1 };
+          const updated = { ...prev, visitors: (prev.visitors || 0) + 1 };
           syncGlobal('analytics', updated);
           return updated;
         });
@@ -281,7 +305,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteAdminUser = (id: string) => {
     if (id === 'default-admin' || (admin && admin.id === id)) {
-        showNotification("Não é possível excluir o administrador principal ou sua própria conta.");
+        showNotification("Operação não permitida para este usuário.");
         return;
     }
     const next = adminUsers.filter(u => u.id !== id);
@@ -319,9 +343,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const recordEvent = (type: 'view' | 'cart' | 'checkout', pId?: string) => {
     const updatedAnalytics = {
       ...analytics,
-      productViews: type === 'view' ? analytics.productViews + 1 : analytics.productViews,
-      addedToCart: type === 'cart' ? analytics.addedToCart + 1 : analytics.addedToCart,
-      whatsappCheckouts: type === 'checkout' ? analytics.whatsappCheckouts + 1 : analytics.whatsappCheckouts,
+      productViews: type === 'view' ? (analytics.productViews || 0) + 1 : analytics.productViews,
+      addedToCart: type === 'cart' ? (analytics.addedToCart || 0) + 1 : analytics.addedToCart,
+      whatsappCheckouts: type === 'checkout' ? (analytics.whatsappCheckouts || 0) + 1 : analytics.whatsappCheckouts,
     };
     
     setAnalytics(updatedAnalytics);
@@ -332,8 +356,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (p.id === pId) {
                 return {
                     ...p,
-                    viewCount: type === 'view' ? p.viewCount + 1 : p.viewCount,
-                    cartAddCount: type === 'cart' ? p.cartAddCount + 1 : p.cartAddCount
+                    viewCount: type === 'view' ? (p.viewCount || 0) + 1 : p.viewCount,
+                    cartAddCount: type === 'cart' ? (p.cartAddCount || 0) + 1 : p.cartAddCount
                 };
             }
             return p;
