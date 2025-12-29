@@ -5,11 +5,10 @@ import { StoreSettings, Product, AnalyticsData, CartItem, AdminUser, FAQItem, Te
 import { INITIAL_SETTINGS, INITIAL_PRODUCTS } from './constants';
 
 // --- SUPABASE CONFIGURATION ---
-// Credentials must be provided via environment variables in Vercel/Local env.
-const SB_URL = (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || '';
-const SB_KEY = (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || '';
+const SB_URL = (process.env as any).NEXT_PUBLIC_SUPABASE_URL || 'https://sagrvdjfqxfrrwruchcg.supabase.co';
+const SB_KEY = (process.env as any).NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Placeholder
 
-const supabase = SB_URL && SB_KEY ? createClient(SB_URL, SB_KEY) : null;
+const supabase = createClient(SB_URL, SB_KEY);
 
 const safeLocalStorage = {
   getItem: (key: string) => {
@@ -75,6 +74,7 @@ interface StoreContextType {
   notifications: Notification[];
   showNotification: (message: string) => void;
   isInitialLoading: boolean;
+  dbStatus: 'connected' | 'disconnected' | 'error';
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -87,36 +87,11 @@ const DEFAULT_ADMIN: AdminUser = {
   createdAt: 1700000000000
 };
 
-/**
- * Deep merge loaded settings with INITIAL_SETTINGS to prevent crashes
- */
-const mergeWithDefaults = (loaded: any): StoreSettings => {
-  return {
-    ...INITIAL_SETTINGS,
-    ...loaded,
-    instagramSection: {
-      ...INITIAL_SETTINGS.instagramSection,
-      ...(loaded?.instagramSection || {})
-    },
-    socialLinks: {
-      ...INITIAL_SETTINGS.socialLinks,
-      ...(loaded?.socialLinks || {})
-    },
-    institutional: {
-      ...INITIAL_SETTINGS.institutional,
-      ...(loaded?.institutional || {})
-    },
-    hotbarMessages: loaded?.hotbarMessages || INITIAL_SETTINGS.hotbarMessages,
-    trustIcons: loaded?.trustIcons || INITIAL_SETTINGS.trustIcons,
-    categories: loaded?.categories || INITIAL_SETTINGS.categories,
-    tags: loaded?.tags || INITIAL_SETTINGS.tags
-  };
-};
-
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [dbStatus, setDbStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [settings, setSettingsState] = useState<StoreSettings>(INITIAL_SETTINGS);
-  const [products, setProductsState] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProductsState] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([DEFAULT_ADMIN]);
@@ -125,95 +100,64 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     visitors: 0, productViews: 0, addedToCart: 0, whatsappCheckouts: 0, abandonedCarts: 0, revenue: 0
   });
 
-  // --- GLOBAL DATA HYDRATION ---
+  // --- GLOBAL HYDRATION ---
   useEffect(() => {
     const hydrate = async () => {
       setIsInitialLoading(true);
-      
-      // Load local cart/session (Browser state)
+
       const savedCart = safeLocalStorage.getItem('detalhes_cart');
-      if (savedCart) {
-        try { setCart(JSON.parse(savedCart)); } catch (e) {}
-      }
+      if (savedCart) { try { setCart(JSON.parse(savedCart)); } catch (e) {} }
       const savedAdmin = safeSessionStorage.getItem('detalhes_admin');
-      if (savedAdmin) {
-        try { setAdmin(JSON.parse(savedAdmin)); } catch (e) {}
+      if (savedAdmin) { try { setAdmin(JSON.parse(savedAdmin)); } catch (e) {} }
+
+      try {
+        const [
+          settingsRes,
+          productsRes,
+          faqRes,
+          testimonialsRes,
+          adminsRes,
+          analyticsRes
+        ] = await Promise.all([
+          supabase.from('site_settings').select('data').eq('id', 1).maybeSingle(),
+          supabase.from('products').select('*').order('createdAt', { ascending: false }),
+          supabase.from('faq').select('*'),
+          supabase.from('testimonials').select('*'),
+          supabase.from('admin_users').select('*'),
+          supabase.from('analytics').select('*').eq('id', 1).maybeSingle()
+        ]);
+
+        if (productsRes.data && productsRes.data.length > 0) {
+          setProductsState(productsRes.data);
+        } else {
+          setProductsState(INITIAL_PRODUCTS);
+        }
+
+        if (adminsRes.data && adminsRes.data.length > 0) {
+          setAdminUsers(adminsRes.data);
+        }
+
+        if (analyticsRes.data) {
+          setAnalytics(analyticsRes.data);
+        }
+
+        let remoteSettings = settingsRes.data?.data || INITIAL_SETTINGS;
+        
+        // Merge with separate table data for robustness
+        if (faqRes.data) remoteSettings.faqs = faqRes.data;
+        if (testimonialsRes.data) remoteSettings.testimonials = testimonialsRes.data;
+        
+        setSettingsState({ ...INITIAL_SETTINGS, ...remoteSettings });
+        setDbStatus('connected');
+
+      } catch (e) {
+        console.error("Supabase Hydration Error:", e);
+        setDbStatus('error');
+        const localSettings = safeLocalStorage.getItem('detalhes_settings');
+        if (localSettings) setSettingsState({ ...INITIAL_SETTINGS, ...JSON.parse(localSettings) });
+      } finally {
+        setIsInitialLoading(false);
       }
-
-      if (supabase) {
-        try {
-          // Parallel fetch from specific tables for source of truth
-          const [
-            settingsRes,
-            productsRes,
-            faqRes,
-            testimonialsRes,
-            adminsRes,
-            analyticsRes,
-            categoriesRes,
-            collectionsRes
-          ] = await Promise.all([
-            supabase.from('site_settings').select('data').eq('id', 1).single(),
-            supabase.from('products').select('*'),
-            supabase.from('faq').select('*'),
-            supabase.from('testimonials').select('*'),
-            supabase.from('admin_users').select('*'),
-            supabase.from('analytics').select('*').eq('id', 1).maybeSingle(),
-            supabase.from('categories').select('name'),
-            supabase.from('collections').select('name')
-          ]);
-
-          // Handle Products
-          if (productsRes.data) {
-            setProductsState(productsRes.data.length > 0 ? productsRes.data : []);
-          }
-
-          // Handle Admins
-          if (adminsRes.data && adminsRes.data.length > 0) {
-            setAdminUsers(adminsRes.data);
-          }
-
-          // Handle Analytics
-          if (analyticsRes.data) {
-            setAnalytics(analyticsRes.data);
-          }
-
-          // Compile Global Settings
-          let baseSettings = settingsRes.data?.data ? mergeWithDefaults(settingsRes.data.data) : INITIAL_SETTINGS;
-          
-          // Override specific fields with table data if available
-          if (faqRes.data) baseSettings.faqs = faqRes.data;
-          if (testimonialsRes.data) baseSettings.testimonials = testimonialsRes.data;
-          if (categoriesRes.data && categoriesRes.data.length > 0) {
-            baseSettings.categories = categoriesRes.data.map((c: any) => c.name);
-          }
-          if (collectionsRes.data && collectionsRes.data.length > 0) {
-            baseSettings.tags = collectionsRes.data.map((c: any) => c.name);
-          }
-
-          setSettingsState(baseSettings);
-
-          // Seed missing default settings if DB is empty
-          if (!settingsRes.data) {
-             await supabase.from('site_settings').upsert([{ id: 1, data: INITIAL_SETTINGS }]);
-          }
-
-        } catch (e) {
-          console.error("Global storage hydration failed", e);
-        }
-      } else {
-        // Fallback to LocalStorage for dev without Supabase
-        const savedSettings = safeLocalStorage.getItem('detalhes_settings');
-        if (savedSettings) {
-          try { setSettingsState(mergeWithDefaults(JSON.parse(savedSettings))); } catch (e) {}
-        }
-        const savedProducts = safeLocalStorage.getItem('detalhes_products');
-        if (savedProducts) {
-          try { setProductsState(JSON.parse(savedProducts)); } catch (e) {}
-        }
-      }
-      
-      setIsInitialLoading(false);
     };
 
     hydrate();
@@ -222,93 +166,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // --- PERSISTENCE HELPERS ---
   const syncSettings = useCallback(async (newSettings: StoreSettings) => {
     safeLocalStorage.setItem('detalhes_settings', JSON.stringify(newSettings));
-    if (supabase) {
-      try {
-        // Update main JSONB settings
-        await supabase.from('site_settings').update({ data: newSettings }).eq('id', 1);
-        
-        // Sync individual tables to keep them as pure source of truth
-        if (newSettings.faqs) {
-          await supabase.from('faq').upsert(newSettings.faqs);
-        }
-        if (newSettings.testimonials) {
-          await supabase.from('testimonials').upsert(newSettings.testimonials);
-        }
-        
-        // Sync Categories
-        if (newSettings.categories) {
-            // Complex sync: delete missing, upsert current
-            const catPayload = newSettings.categories.map(name => ({ name }));
-            await supabase.from('categories').upsert(catPayload, { onConflict: 'name' });
-        }
-        
-        // Sync Collections (Tags)
-        if (newSettings.tags) {
-            const colPayload = newSettings.tags.map(name => ({ name }));
-            await supabase.from('collections').upsert(colPayload, { onConflict: 'name' });
-        }
-      } catch (e) {
-        console.warn("Settings sync failed", e);
-      }
+    try {
+      await supabase.from('site_settings').upsert([{ id: 1, data: newSettings }]);
+      // Sync FAQ and Testimonials to specific tables too
+      if (newSettings.faqs) await supabase.from('faq').upsert(newSettings.faqs);
+      if (newSettings.testimonials) await supabase.from('testimonials').upsert(newSettings.testimonials);
+    } catch (e) {
+      console.warn("Global settings sync failed:", e);
     }
   }, []);
 
   const syncProduct = useCallback(async (p: Product, action: 'upsert' | 'delete') => {
-    if (supabase) {
-      try {
-        if (action === 'delete') {
-          await supabase.from('products').delete().eq('id', p.id);
-        } else {
-          await supabase.from('products').upsert(p);
-        }
-      } catch (e) {
-        console.warn("Product sync failed", e);
+    try {
+      if (action === 'delete') {
+        await supabase.from('products').delete().eq('id', p.id);
+      } else {
+        await supabase.from('products').upsert(p);
       }
+    } catch (e) {
+      console.warn("Product sync failed:", e);
     }
   }, []);
 
   const syncAdmin = useCallback(async (user: AdminUser, action: 'upsert' | 'delete') => {
-    if (supabase) {
-      try {
-        if (action === 'delete') {
-          await supabase.from('admin_users').delete().eq('id', user.id);
-        } else {
-          await supabase.from('admin_users').upsert(user);
-        }
-      } catch (e) {
-        console.warn("Admin sync failed", e);
+    try {
+      if (action === 'delete') {
+        await supabase.from('admin_users').delete().eq('id', user.id);
+      } else {
+        await supabase.from('admin_users').upsert(user);
       }
+    } catch (e) {
+      console.warn("Admin sync failed:", e);
     }
   }, []);
 
   const syncAnalytics = useCallback(async (data: AnalyticsData) => {
-    if (supabase) {
-      try {
-        await supabase.from('analytics').upsert({ id: 1, ...data });
-      } catch (e) {
-        console.warn("Analytics sync failed", e);
-      }
+    try {
+      await supabase.from('analytics').upsert({ id: 1, ...data });
+    } catch (e) {
+      console.warn("Analytics sync failed:", e);
     }
   }, []);
-
-  useEffect(() => {
-    safeLocalStorage.setItem('detalhes_cart', JSON.stringify(cart));
-  }, [cart]);
-
-  // Global visitor tracker
-  useEffect(() => {
-    if (!isInitialLoading) {
-      const visited = safeSessionStorage.getItem('detalhes_visited');
-      if (!visited) {
-        setAnalytics(prev => {
-          const updated = { ...prev, visitors: (prev.visitors || 0) + 1 };
-          syncAnalytics(updated);
-          return updated;
-        });
-        safeSessionStorage.setItem('detalhes_visited', 'true');
-      }
-    }
-  }, [isInitialLoading, syncAnalytics]);
 
   const showNotification = (message: string) => {
     const id = Date.now();
@@ -325,8 +223,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setProducts = (newProducts: Product[]) => {
     setProductsState(newProducts);
-    // Note: Global sync for the entire array isn't recommended for performance; 
-    // but individual methods handle p-by-p sync.
+    // Note: Global sync for whole array is expensive, better sync item by item
   };
   
   const addProduct = (p: Product) => {
@@ -351,13 +248,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const normalizedUser = u.trim().toLowerCase();
     const normalizedPass = p.trim();
     const inputHash = await hashPassword(normalizedPass);
-    
-    // First check in-memory list
     const user = adminUsers.find(user => 
       user.username.trim().toLowerCase() === normalizedUser && 
       user.passwordHash === inputHash
     );
-
     if (user) {
       setAdmin(user);
       safeSessionStorage.setItem('detalhes_admin', JSON.stringify(user));
@@ -382,7 +276,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return u;
     }));
     setAdminUsers(updatedUsers);
-    
     if (admin && admin.id === id) {
       const updatedAdmin = updatedUsers.find(u => u.id === id)!;
       setAdmin(updatedAdmin);
@@ -419,10 +312,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const product = products.find(p => p.id === productId);
     setCart(prev => {
       const existing = prev.find(item => item.productId === productId);
-      if (existing) {
-        return prev.map(item => item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item);
-      }
-      return [...prev, { productId, quantity: 1 }];
+      const newCart = existing 
+        ? prev.map(item => item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item)
+        : [...prev, { productId, quantity: 1 }];
+      safeLocalStorage.setItem('detalhes_cart', JSON.stringify(newCart));
+      return newCart;
     });
     recordEvent('cart', productId);
     if (product) {
@@ -431,34 +325,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.productId !== productId));
+    setCart(prev => {
+      const newCart = prev.filter(item => item.productId !== productId);
+      safeLocalStorage.setItem('detalhes_cart', JSON.stringify(newCart));
+      return newCart;
+    });
   };
 
   const updateCartQuantity = (productId: string, qty: number) => {
     if (qty < 1) return removeFromCart(productId);
-    setCart(prev => prev.map(item => item.productId === productId ? { ...item, quantity: qty } : item));
+    setCart(prev => {
+      const newCart = prev.map(item => item.productId === productId ? { ...item, quantity: qty } : item);
+      safeLocalStorage.setItem('detalhes_cart', JSON.stringify(newCart));
+      return newCart;
+    });
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    safeLocalStorage.setItem('detalhes_cart', '[]');
+  };
 
   const recordEvent = (type: 'view' | 'cart' | 'checkout', pId?: string) => {
     const updatedAnalytics = {
       ...analytics,
-      productViews: type === 'view' ? (analytics.productViews || 0) + 1 : analytics.productViews,
-      addedToCart: type === 'cart' ? (analytics.addedToCart || 0) + 1 : analytics.addedToCart,
-      whatsappCheckouts: type === 'checkout' ? (analytics.whatsappCheckouts || 0) + 1 : analytics.whatsappCheckouts,
+      productViews: type === 'view' ? analytics.productViews + 1 : analytics.productViews,
+      addedToCart: type === 'cart' ? analytics.addedToCart + 1 : analytics.addedToCart,
+      whatsappCheckouts: type === 'checkout' ? analytics.whatsappCheckouts + 1 : analytics.whatsappCheckouts,
     };
-    
     setAnalytics(updatedAnalytics);
     syncAnalytics(updatedAnalytics);
-    
     if (pId) {
         const nextProducts = products.map(p => {
             if (p.id === pId) {
                 const updatedP = {
                     ...p,
-                    viewCount: type === 'view' ? (p.viewCount || 0) + 1 : p.viewCount,
-                    cartAddCount: type === 'cart' ? (p.cartAddCount || 0) + 1 : p.cartAddCount
+                    viewCount: p.viewCount + (type === 'view' ? 1 : 0),
+                    cartAddCount: p.cartAddCount + (type === 'cart' ? 1 : 0)
                 };
                 syncProduct(updatedP, 'upsert');
                 return updatedP;
@@ -476,7 +379,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         settings, setSettings, products, setProducts, addProduct, updateProduct, deleteProduct,
         cart, addToCart, removeFromCart, updateCartQuantity, clearCart, 
         analytics, recordEvent, admin, adminUsers, login, logout, updateAdminUser, 
-        createAdminUser, deleteAdminUser, notifications, showNotification, isInitialLoading
+        createAdminUser, deleteAdminUser, notifications, showNotification, isInitialLoading, dbStatus
       },
     },
     children
