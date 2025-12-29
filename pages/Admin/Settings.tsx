@@ -1,28 +1,47 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store';
 import { 
   Save, Check, ImageIcon, Type, Trash2, ShieldCheck, 
   UserPlus, Radio, Plus, Eye, EyeOff, MessageSquare, 
   Tag as TagIcon, Layout, Image as ImageLucide, Link as LinkIcon, X, Lock, User, 
   Instagram, Facebook, Mail, Globe, Info, Truck, Pencil, Sparkles, ArrowLeft, Upload,
-  Phone, MessageCircle, Code, HelpCircle, Star, Key, Hash
+  Phone, MessageCircle, Code, HelpCircle, Star, Key, Hash, CheckCircle2
 } from 'lucide-react';
+import { INITIAL_SETTINGS } from '../../constants';
+import { StoreSettings, Testimonial } from '../../types';
 
 const AdminSettings: React.FC = () => {
   const { settings, setSettings, adminUsers, deleteAdminUser, createAdminUser, updateAdminUser, showNotification } = useStore();
   
-  // Defensive initialization for local state
-  const [localSettings, setLocalSettings] = useState(settings || {});
+  const [localSettings, setLocalSettings] = useState<StoreSettings>(() => ({
+    ...INITIAL_SETTINGS,
+    ...(settings || {}),
+    instagramSection: {
+      ...INITIAL_SETTINGS.instagramSection,
+      ...(settings?.instagramSection || {})
+    }
+  }));
+
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings(prev => ({
+        ...prev,
+        ...settings,
+        instagramSection: {
+          ...INITIAL_SETTINGS.instagramSection,
+          ...(settings.instagramSection || {})
+        }
+      }));
+    }
+  }, [settings]);
+
   const [saved, setSaved] = useState(false);
-  
   const [newCat, setNewCat] = useState('');
   const [newTag, setNewTag] = useState('');
   const [newHotbarText, setNewHotbarText] = useState('');
-
   const [editingHotbarId, setEditingHotbarId] = useState<string | null>(null);
   const [tempHotbarText, setTempHotbarText] = useState('');
-
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<{id?: string, username: string, password?: string, role: 'superadmin' | 'editor'} | null>(null);
 
@@ -32,32 +51,31 @@ const AdminSettings: React.FC = () => {
   const handleSaveSettings = () => {
     setSettings(localSettings);
     setSaved(true);
-    showNotification("Configurações atualizadas com sucesso! ✨");
+    showNotification("Configurações atualizadas globalmente! ✨");
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const updateField = (field: string, value: any) => {
+  const updateField = <K extends keyof StoreSettings>(field: K, value: StoreSettings[K]) => {
     setLocalSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateSocial = (field: string, value: string) => {
+  const updateSocial = (field: keyof StoreSettings['socialLinks'], value: string) => {
     setLocalSettings(prev => ({
         ...prev,
-        socialLinks: { ...(prev?.socialLinks || {}), [field]: value }
+        socialLinks: { ...prev.socialLinks, [field]: value }
     }));
   };
 
-  const updateInstitutional = (field: string, value: string) => {
+  const updateInstitutional = (field: keyof StoreSettings['institutional'], value: string) => {
     setLocalSettings(prev => ({
         ...prev,
-        institutional: { ...(prev?.institutional || {}), [field]: value }
+        institutional: { ...prev.institutional, [field]: value }
     }));
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'heroImageUrl') => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = () => {
       updateField(field, reader.result as string);
@@ -73,11 +91,7 @@ const AdminSettings: React.FC = () => {
       const elementRect = element.getBoundingClientRect().top;
       const elementPosition = elementRect - bodyRect;
       const offsetPosition = elementPosition - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
   };
 
@@ -107,12 +121,13 @@ const AdminSettings: React.FC = () => {
   };
 
   const addTestimonial = () => {
-    const newT = {
+    const newT: Testimonial = {
       id: Math.random().toString(36).substr(2, 9),
-      name: 'Nome da Cliente',
-      text: 'Depoimento incrível...',
+      name: 'Nova Cliente',
+      text: 'Escreva aqui o depoimento da cliente...',
       rating: 5,
-      enabled: true
+      enabled: true,
+      isVerified: true
     };
     updateField('testimonials', [...(localSettings?.testimonials || []), newT]);
   };
@@ -178,26 +193,25 @@ const AdminSettings: React.FC = () => {
     }
   };
 
-  // Instagram Management
   const addInstagramPost = () => {
     const newPost = { id: Math.random().toString(36).substr(2, 9), imageUrl: '' };
     updateField('instagramSection', {
-      ...(localSettings?.instagramSection || {}),
-      posts: [...(localSettings?.instagramSection?.posts || []), newPost]
+      ...localSettings.instagramSection,
+      posts: [...localSettings.instagramSection.posts, newPost]
     });
   };
 
   const updateInstagramPost = (id: string, url: string) => {
     updateField('instagramSection', {
-      ...localSettings?.instagramSection,
-      posts: (localSettings?.instagramSection?.posts || []).map(p => p.id === id ? { ...p, imageUrl: url } : p)
+      ...localSettings.instagramSection,
+      posts: localSettings.instagramSection.posts.map(p => p.id === id ? { ...p, imageUrl: url } : p)
     });
   };
 
   const removeInstagramPost = (id: string) => {
     updateField('instagramSection', {
-      ...localSettings?.instagramSection,
-      posts: (localSettings?.instagramSection?.posts || []).filter(p => p.id !== id)
+      ...localSettings.instagramSection,
+      posts: localSettings.instagramSection.posts.filter(p => p.id !== id)
     });
   };
 
@@ -205,8 +219,8 @@ const AdminSettings: React.FC = () => {
     { label: 'Logo', id: 'sec-logo' },
     { label: 'Banner', id: 'sec-banner' },
     { label: 'WhatsApp', id: 'sec-checkout' },
-    { label: 'Redes', id: 'sec-social' },
-    { label: 'Live', id: 'sec-live' },
+    { label: 'Redes Sociais', id: 'sec-social' },
+    { label: 'Live Commerce', id: 'sec-live' },
     { label: 'Institucional', id: 'sec-inst' },
     { label: 'Hotbar', id: 'sec-hotbar' },
     { label: 'Depoimentos', id: 'sec-testimonials' },
@@ -220,8 +234,8 @@ const AdminSettings: React.FC = () => {
     <div className="max-w-5xl space-y-12 pb-32 animate-fade-in relative px-1 w-full overflow-x-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-serif">Configurações</h1>
-          <p className="text-[10px] md:text-sm text-gray-500 uppercase tracking-widest mt-1 italic">Gestão completa da marca</p>
+          <h1 className="text-2xl md:text-3xl font-serif">Configurações Gerais</h1>
+          <p className="text-[10px] md:text-sm text-gray-500 uppercase tracking-widest mt-1 italic">Personalize sua marca e experiência do cliente</p>
         </div>
         <button 
           onClick={handleSaveSettings}
@@ -233,7 +247,6 @@ const AdminSettings: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 md:gap-12 relative">
-        {/* Navigation - optimized for mobile */}
         <div className="lg:col-span-1">
             <nav className="sticky top-20 md:top-32 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible space-x-2 lg:space-x-0 lg:space-y-1 bg-white/80 backdrop-blur-md p-3 md:p-4 rounded-full md:rounded-[2.5rem] border border-gray-100 shadow-sm scrollbar-hide z-30 mx-4 md:mx-0">
                 {menuItems.map((item) => (
@@ -249,16 +262,14 @@ const AdminSettings: React.FC = () => {
         </div>
 
         <div className="lg:col-span-3 space-y-8 md:space-y-12 px-4 md:px-0">
-          
-          {/* Logo Section */}
+          {/* SEC LOGO */}
           <section id="sec-logo" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
-            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Layout size={20} className="text-[#D5BDAF]" /><span>Logo da Loja</span></h2>
+            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Layout size={20} className="text-[#D5BDAF]" /><span>Logotipo da Loja</span></h2>
             <div className="space-y-6">
                 <div className="flex p-1.5 bg-gray-50 rounded-full w-full max-w-sm mx-auto md:mx-0">
                   <button onClick={() => updateField('logoType', 'text')} className={`flex-1 py-3 flex items-center justify-center space-x-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition ${localSettings?.logoType === 'text' ? 'bg-white shadow-md text-black' : 'text-gray-400'}`}><Type size={14} /><span>Texto</span></button>
                   <button onClick={() => updateField('logoType', 'image')} className={`flex-1 py-3 flex items-center justify-center space-x-2 rounded-full text-[10px] uppercase font-bold tracking-widest transition ${localSettings?.logoType === 'image' ? 'bg-white shadow-md text-black' : 'text-gray-400'}`}><ImageIcon size={14} /><span>Imagem</span></button>
                 </div>
-                
                 {localSettings?.logoType === 'text' ? (
                    <div className="space-y-2">
                      <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Nome da Marca</label>
@@ -270,14 +281,10 @@ const AdminSettings: React.FC = () => {
                        {localSettings?.logoUrl ? <img src={localSettings.logoUrl} className="max-w-full max-h-full object-contain p-2" /> : <ImageIcon size={24} className="text-gray-200"/>}
                     </div>
                     <div className="flex-grow text-center sm:text-left">
-                       <button 
-                         onClick={() => logoInputRef.current?.click()}
-                         className="bg-[#212529] text-white px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-black transition flex items-center gap-3 mx-auto sm:mx-0"
-                       >
-                         <Upload size={14} />
-                         Upar Logo
+                       <button onClick={() => logoInputRef.current?.click()} className="bg-[#212529] text-white px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-black transition flex items-center gap-3 mx-auto sm:mx-0">
+                         <Upload size={14} /> Carregar Logo
                        </button>
-                       <p className="text-[9px] text-gray-400 mt-3 uppercase tracking-widest italic">PNG transparente recomendado</p>
+                       <p className="text-[9px] text-gray-400 mt-3 uppercase tracking-widest italic">Formatos suportados: PNG, JPG, SVG.</p>
                        <input type="file" ref={logoInputRef} onChange={(e) => handleImageUpload(e, 'logoUrl')} className="hidden" accept="image/*" />
                     </div>
                   </div>
@@ -285,9 +292,9 @@ const AdminSettings: React.FC = () => {
             </div>
           </section>
 
-          {/* Banner Section */}
+          {/* SEC BANNER */}
           <section id="sec-banner" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
-            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><ImageLucide size={20} className="text-[#D5BDAF]" /><span>Banner Principal</span></h2>
+            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><ImageLucide size={20} className="text-[#D5BDAF]" /><span>Banner Hero (Principal)</span></h2>
             <div className="space-y-6">
                 <div className="relative aspect-video rounded-[2rem] overflow-hidden bg-gray-100 border border-gray-100 shadow-inner group">
                     {localSettings?.heroImageUrl ? (
@@ -295,132 +302,115 @@ const AdminSettings: React.FC = () => {
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
                         <ImageLucide size={48} strokeWidth={1} />
-                        <span className="text-[10px] uppercase tracking-widest font-bold mt-4">Sem imagem</span>
+                        <span className="text-[10px] uppercase tracking-widest font-bold mt-4">Nenhuma imagem carregada</span>
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <button onClick={() => heroInputRef.current?.click()} className="bg-white text-black px-10 py-4 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl">Alterar Banner</button>
+                       <button onClick={() => heroInputRef.current?.click()} className="bg-white text-black px-10 py-4 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl">Trocar Imagem</button>
                     </div>
                     <input type="file" ref={heroInputRef} onChange={(e) => handleImageUpload(e, 'heroImageUrl')} className="hidden" accept="image/*" />
                 </div>
-                <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Headline</label>
-                    <input type="text" value={localSettings?.headline || ''} onChange={(e) => updateField('headline', e.target.value)} className="w-full px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white"/>
-                </div>
-                <div className="space-y-2">
-                   <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Subheadline</label>
-                   <textarea value={localSettings?.subheadline || ''} onChange={(e) => updateField('subheadline', e.target.value)} className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-sm h-32 resize-none focus:bg-white shadow-inner" placeholder="Ex: Semijoias que traduzem sua essência..."/>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Título (Headline)</label>
+                      <input type="text" value={localSettings?.headline || ''} onChange={(e) => updateField('headline', e.target.value)} className="w-full px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white transition"/>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">Subtítulo</label>
+                    <input type="text" value={localSettings?.subheadline || ''} onChange={(e) => updateField('subheadline', e.target.value)} className="w-full px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white transition"/>
+                  </div>
                 </div>
             </div>
           </section>
 
-          {/* Checkout & WhatsApp */}
+          {/* SEC CHECKOUT */}
           <section id="sec-checkout" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><MessageCircle size={20} className="text-[#25D366]" /><span>Checkout & WhatsApp</span></h2>
-            
             <div className="space-y-8">
-                <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Phone size={12}/> Número WhatsApp (DDI+DDD+Número)</label>
-                    <input type="text" value={localSettings?.whatsappNumber || ''} onChange={(e) => updateField('whatsappNumber', e.target.value)} className="w-full px-6 md:px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm font-mono shadow-inner" placeholder="Ex: 5511999999999"/>
-                    <p className="text-[9px] text-gray-400 ml-4 italic uppercase">Este número receberá os pedidos finalizados.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Phone size={12}/> Número WhatsApp (DDI+DDD+Número)</label>
+                      <input type="text" value={localSettings?.whatsappNumber || ''} onChange={(e) => updateField('whatsappNumber', e.target.value)} className="w-full px-6 md:px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm font-mono shadow-inner" placeholder="Ex: 5511999999999"/>
+                  </div>
+                  <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Truck size={12}/> Frete Grátis acima de (R$)</label>
+                      <input type="number" value={localSettings?.freeShippingThreshold || 0} onChange={(e) => updateField('freeShippingThreshold', parseFloat(e.target.value))} className="w-full px-6 md:px-8 py-4 rounded-full bg-gray-50 border outline-none text-sm focus:bg-white shadow-inner" />
+                  </div>
                 </div>
-
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between ml-4">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-2"><Code size={12}/> Template: Compra Regular</label>
-                        <span className="text-[8px] bg-blue-50 text-blue-500 px-2 py-1 rounded-full uppercase font-bold">Padrão</span>
-                    </div>
-                    <textarea 
-                        value={localSettings?.whatsappTemplateRegular || ''} 
-                        onChange={(e) => updateField('whatsappTemplateRegular', e.target.value)} 
-                        className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-xs h-32 resize-none leading-relaxed focus:bg-white transition shadow-inner font-mono" 
-                    />
+                    <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-2 ml-4"><Code size={12}/> Template Regular (WhatsApp)</label>
+                    <textarea value={localSettings?.whatsappTemplateRegular || ''} onChange={(e) => updateField('whatsappTemplateRegular', e.target.value)} className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border border-transparent outline-none text-xs h-32 resize-none leading-relaxed focus:bg-white transition shadow-inner font-mono" />
                 </div>
-
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between ml-4">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-2"><Radio size={12}/> Template: Compra em Live</label>
-                        <span className="text-[8px] bg-red-50 text-red-500 px-2 py-1 rounded-full uppercase font-bold">Urgência</span>
-                    </div>
-                    <textarea 
-                        value={localSettings?.whatsappTemplateLive || ''} 
-                        onChange={(e) => updateField('whatsappTemplateLive', e.target.value)} 
-                        className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-xs h-32 resize-none leading-relaxed focus:bg-white transition shadow-inner font-mono" 
-                    />
-                </div>
-
-                <div className="p-6 bg-[#FAF7F2] rounded-3xl space-y-3">
-                    <h4 className="text-[9px] uppercase font-bold tracking-widest text-gray-500 border-b border-gray-200/50 pb-2">Tags Inteligentes</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="text-[9px] text-gray-500 flex items-center gap-2"><code>{'{productList}'}</code> <span>Lista as peças</span></div>
-                        <div className="text-[9px] text-gray-500 flex items-center gap-2"><code>{'{totalPrice}'}</code> <span>Valor final</span></div>
-                        <div className="text-[9px] text-gray-500 flex items-center gap-2"><code>{'{liveCode}'}</code> <span>Código da live</span></div>
-                    </div>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-2 ml-4"><Radio size={12}/> Template Live (WhatsApp)</label>
+                    <textarea value={localSettings?.whatsappTemplateLive || ''} onChange={(e) => updateField('whatsappTemplateLive', e.target.value)} className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border border-transparent outline-none text-xs h-32 resize-none leading-relaxed focus:bg-white transition shadow-inner font-mono" />
                 </div>
             </div>
           </section>
 
-          {/* Redes Sociais */}
+          {/* SEC REDES SOCIAIS (CORRIGIDO) */}
           <section id="sec-social" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
-            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Globe size={20} className="text-[#D5BDAF]" /><span>Redes Sociais</span></h2>
+            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Globe size={20} className="text-[#D5BDAF]" /><span>Redes Sociais da Loja</span></h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Instagram size={12}/> Instagram</label>
-                    <input type="text" value={localSettings?.socialLinks?.instagram || ''} onChange={(e) => updateSocial('instagram', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Instagram size={12}/> Instagram URL</label>
+                    <input type="text" value={localSettings?.socialLinks?.instagram || ''} onChange={(e) => updateSocial('instagram', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border border-transparent focus:bg-white outline-none text-sm transition shadow-inner" placeholder="https://instagram.com/sua.loja"/>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Facebook size={12}/> Facebook</label>
-                    <input type="text" value={localSettings?.socialLinks?.facebook || ''} onChange={(e) => updateSocial('facebook', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Facebook size={12}/> Facebook URL</label>
+                    <input type="text" value={localSettings?.socialLinks?.facebook || ''} onChange={(e) => updateSocial('facebook', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border border-transparent focus:bg-white outline-none text-sm transition shadow-inner" placeholder="https://facebook.com/sua.loja"/>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2">TikTok</label>
-                    <input type="text" value={localSettings?.socialLinks?.tiktok || ''} onChange={(e) => updateSocial('tiktok', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+                      TikTok URL
+                    </label>
+                    <input type="text" value={localSettings?.socialLinks?.tiktok || ''} onChange={(e) => updateSocial('tiktok', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border border-transparent focus:bg-white outline-none text-sm transition shadow-inner" placeholder="https://tiktok.com/@sua.loja"/>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Mail size={12}/> Email Atendimento</label>
-                    <input type="text" value={localSettings?.contactEmail || ''} onChange={(e) => updateField('contactEmail', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"/>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Phone size={12}/> WhatsApp Link Direto</label>
+                    <input type="text" value={localSettings?.socialLinks?.whatsapp || ''} onChange={(e) => updateSocial('whatsapp', e.target.value)} className="w-full px-6 py-4 rounded-full bg-gray-50 border border-transparent focus:bg-white outline-none text-sm transition shadow-inner" placeholder="https://wa.me/55..."/>
                 </div>
             </div>
           </section>
 
-          {/* Live Commerce */}
+          {/* SEC LIVE */}
           <section id="sec-live" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm scroll-mt-36 md:scroll-mt-32">
              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-serif flex items-center space-x-3"><Radio size={20} className={localSettings?.isLiveOn ? 'text-red-500' : 'text-gray-300'} /><span>Live Commerce Ativa?</span></h2>
+                <div className="space-y-1">
+                  <h2 className="text-xl font-serif flex items-center space-x-3"><Radio size={20} className={localSettings?.isLiveOn ? 'text-red-500' : 'text-gray-300'} /><span>Live Commerce</span></h2>
+                  <p className="text-[9px] uppercase tracking-widest text-gray-400 font-bold ml-8">Ative para mudar o site para modo AO VIVO</p>
+                </div>
                 <button onClick={() => updateField('isLiveOn', !localSettings?.isLiveOn)} className={`w-14 h-7 rounded-full relative transition-all ${localSettings?.isLiveOn ? 'bg-red-500 shadow-lg shadow-red-200' : 'bg-gray-200'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings?.isLiveOn ? 'right-1' : 'left-1'}`} /></button>
              </div>
           </section>
 
-          {/* Institucional Section */}
+          {/* SEC INSTITUCIONAL */}
           <section id="sec-inst" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
-            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Info size={20} className="text-[#D5BDAF]" /><span>Políticas & Institucional</span></h2>
+            <h2 className="text-xl font-serif flex items-center space-x-3 border-b border-gray-50 pb-6"><Info size={20} className="text-[#D5BDAF]" /><span>Páginas Institucionais</span></h2>
             <div className="space-y-8">
-                {[
-                  { key: 'about', label: 'Sobre a Marca', icon: <Sparkles size={14}/> },
-                  { key: 'shipping', label: 'Política de Envio', icon: <Truck size={14}/> },
-                  { key: 'returns', label: 'Trocas e Devoluções', icon: <ArrowLeft size={14}/> },
-                  { key: 'warranty', label: 'Garantia Premium', icon: <ShieldCheck size={14}/> }
-                ].map(item => (
-                  <div key={item.key} className="space-y-3">
-                    <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 flex items-center gap-2">
-                        {item.icon} {item.label}
-                    </label>
+                <div className="space-y-3">
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 italic">E-mail de Contato Público</label>
+                  <input type="email" value={localSettings?.contactEmail || ''} onChange={(e) => updateField('contactEmail', e.target.value)} className="w-full px-8 py-4 rounded-full bg-gray-50 border border-transparent outline-none text-sm focus:bg-white transition shadow-inner" />
+                </div>
+                {(['about', 'shipping', 'returns', 'warranty'] as (keyof StoreSettings['institutional'])[]).map(key => (
+                  <div key={key} className="space-y-3">
+                    <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 ml-4 capitalize">{key === 'about' ? 'Sobre a Loja' : key === 'shipping' ? 'Política de Envio' : key === 'returns' ? 'Trocas e Devoluções' : 'Garantia Premium'}</label>
                     <textarea 
-                      value={(localSettings?.institutional as any)?.[item.key] || ''} 
-                      onChange={(e) => updateInstitutional(item.key, e.target.value)} 
-                      className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border outline-none text-xs h-32 md:h-40 resize-none leading-relaxed focus:bg-white transition shadow-inner" 
-                      placeholder={`Escreva aqui sobre ${item.label.toLowerCase()}...`}
+                      value={localSettings.institutional[key] || ''} 
+                      onChange={(e) => updateInstitutional(key, e.target.value)} 
+                      className="w-full px-8 py-5 rounded-[2rem] bg-gray-50 border border-transparent outline-none text-xs h-32 md:h-40 resize-none leading-relaxed focus:bg-white transition shadow-inner" 
                     />
                   </div>
                 ))}
             </div>
           </section>
 
-          {/* Hotbar */}
+          {/* SEC HOTBAR */}
           <section id="sec-hotbar" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
-            <h2 className="text-xl font-serif border-b border-gray-50 pb-6 flex items-center space-x-3"><MessageSquare size={20} className="text-[#D5BDAF]" /><span>Hotbar de Avisos</span></h2>
+            <h2 className="text-xl font-serif border-b border-gray-50 pb-6 flex items-center space-x-3"><MessageSquare size={20} className="text-[#D5BDAF]" /><span>Hotbar (Avisos Rotativos)</span></h2>
             <div className="flex flex-col sm:flex-row gap-4">
-                <input type="text" value={newHotbarText} onChange={(e) => setNewHotbarText(e.target.value)} placeholder="Novo Aviso..." className="flex-grow px-8 py-4 rounded-full bg-gray-50 border outline-none text-xs uppercase focus:bg-white shadow-inner" />
+                <input type="text" value={newHotbarText} onChange={(e) => setNewHotbarText(e.target.value)} placeholder="Novo Aviso (Ex: FRETE GRÁTIS HOJE)" className="flex-grow px-8 py-4 rounded-full bg-gray-50 border border-transparent outline-none text-[10px] uppercase font-bold tracking-widest focus:bg-white shadow-inner" />
                 <button onClick={addHotbarMessage} className="bg-[#212529] text-white p-4 rounded-full flex justify-center items-center shadow-xl transition-transform active:scale-90"><Plus size={18} /></button>
             </div>
             <div className="space-y-3">
@@ -428,13 +418,7 @@ const AdminSettings: React.FC = () => {
                     <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl flex flex-col sm:flex-row items-center justify-between group gap-4 border border-transparent hover:border-gray-100 transition-all">
                         {editingHotbarId === msg.id ? (
                            <div className="w-full flex items-center gap-3">
-                              <input 
-                                 type="text" 
-                                 value={tempHotbarText} 
-                                 onChange={(e) => setTempHotbarText(e.target.value)}
-                                 className="flex-grow bg-white px-4 py-2 rounded-full border border-[#D5BDAF] text-[10px] uppercase font-bold outline-none"
-                                 autoFocus
-                              />
+                              <input type="text" value={tempHotbarText} onChange={(e) => setTempHotbarText(e.target.value)} className="flex-grow bg-white px-4 py-2 rounded-full border border-[#D5BDAF] text-[10px] uppercase font-bold outline-none" autoFocus />
                               <button onClick={() => saveHotbarEdit(msg.id)} className="p-2 text-green-500 transition-transform active:scale-90"><Check size={14}/></button>
                               <button onClick={() => setEditingHotbarId(null)} className="p-2 text-red-400 transition-transform active:scale-90"><X size={14}/></button>
                            </div>
@@ -443,8 +427,8 @@ const AdminSettings: React.FC = () => {
                             <span className={`text-[10px] font-bold uppercase tracking-widest text-center sm:text-left ${msg.enabled ? 'text-gray-800' : 'text-gray-400 italic line-through'}`}>{msg.text}</span>
                             <div className="flex items-center gap-4">
                                 <button onClick={() => startEditingHotbar(msg)} className="p-2 text-gray-400 hover:text-black transition-colors" title="Editar"><Pencil size={14}/></button>
-                                <button onClick={() => updateField('hotbarMessages', localSettings.hotbarMessages.map(m => m.id === msg.id ? {...m, enabled: !m.enabled} : m))} className="p-2 text-gray-400 hover:text-[#D5BDAF] transition-colors">{msg.enabled ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
-                                <button onClick={() => updateField('hotbarMessages', localSettings.hotbarMessages.filter(m => m.id !== msg.id))} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
+                                <button onClick={() => updateField('hotbarMessages', (localSettings?.hotbarMessages || []).map(m => m.id === msg.id ? {...m, enabled: !m.enabled} : m))} className="p-2 text-gray-400 hover:text-[#D5BDAF] transition-colors">{msg.enabled ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
+                                <button onClick={() => updateField('hotbarMessages', (localSettings?.hotbarMessages || []).filter(m => m.id !== msg.id))} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
                             </div>
                           </>
                         )}
@@ -453,181 +437,97 @@ const AdminSettings: React.FC = () => {
             </div>
           </section>
 
-          {/* Testimonials Management */}
+          {/* SEC DEPOIMENTOS (PROVA SOCIAL) */}
           <section id="sec-testimonials" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6">
-              <h2 className="text-xl font-serif flex items-center space-x-3"><Star size={20} className="text-[#D5BDAF]" /><span>Depoimentos de Clientes</span></h2>
-              <button onClick={addTestimonial} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
+              <h2 className="text-xl font-serif flex items-center space-x-3"><Star size={20} className="text-[#D5BDAF]" /><span>Gestão de Depoimentos (Prova Social)</span></h2>
+              <button onClick={addTestimonial} className="bg-black text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><Plus size={16}/></button>
             </div>
             <div className="space-y-6">
                 {(localSettings?.testimonials || []).map((t) => (
-                    <div key={t.id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
-                        <div className="flex justify-between items-start">
-                            <input 
-                                type="text" 
-                                value={t.name} 
-                                onChange={(e) => updateTestimonial(t.id, { name: e.target.value })}
-                                className="bg-transparent font-bold uppercase tracking-widest text-[10px] outline-none border-b border-gray-200 pb-1"
-                                placeholder="Nome da Cliente"
-                            />
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => updateTestimonial(t.id, { enabled: !t.enabled })} className={`p-2 transition-colors ${t.enabled ? 'text-[#D5BDAF]' : 'text-gray-300'}`}>{t.enabled ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
-                                <button onClick={() => removeTestimonial(t.id)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={14}/></button>
+                    <div key={t.id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-6 relative group/card">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div className="flex-grow space-y-4 w-full">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    <input 
+                                        type="text" 
+                                        value={t.name} 
+                                        onChange={(e) => updateTestimonial(t.id, { name: e.target.value })} 
+                                        className="bg-white px-4 py-2 rounded-full border border-gray-200 font-bold uppercase tracking-widest text-[10px] outline-none focus:border-[#D5BDAF] w-full sm:w-64" 
+                                        placeholder="Nome da Cliente" 
+                                    />
+                                    <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-full border border-gray-200">
+                                        <div className="flex gap-1">
+                                            {[1,2,3,4,5].map(star => (
+                                                <button 
+                                                    key={star}
+                                                    onClick={() => updateTestimonial(t.id, { rating: star })}
+                                                    className={`transition-colors ${star <= t.rating ? 'text-[#D5BDAF]' : 'text-gray-300'}`}
+                                                >
+                                                    <Star size={14} fill={star <= t.rating ? 'currentColor' : 'none'} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <button 
+                                        onClick={() => updateTestimonial(t.id, { isVerified: !t.isVerified })}
+                                        className={`flex items-center space-x-2 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all ${t.isVerified ? 'text-green-600 bg-green-50 border border-green-200' : 'text-gray-400 bg-white border border-gray-200'}`}
+                                    >
+                                        <CheckCircle2 size={12} />
+                                        <span>{t.isVerified ? 'Cliente Verificada' : 'Sem Selo'}</span>
+                                    </button>
+                                    <button onClick={() => updateTestimonial(t.id, { enabled: !t.enabled })} className={`flex items-center space-x-2 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all ${t.enabled ? 'text-[#D5BDAF] bg-white border border-[#D5BDAF]/20' : 'text-gray-300 bg-white border border-gray-200'}`}>
+                                      {t.enabled ? <><Eye size={12}/> <span>Visível</span></> : <><EyeOff size={12}/> <span>Oculto</span></>}
+                                    </button>
+                                    <button onClick={() => removeTestimonial(t.id)} className="flex items-center space-x-2 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest text-red-400 bg-white border border-red-100 hover:bg-red-50 transition-all">
+                                      <Trash2 size={12} /> <span>Remover</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <textarea 
                             value={t.text} 
-                            onChange={(e) => updateTestimonial(t.id, { text: e.target.value })}
-                            className="w-full bg-white p-4 rounded-2xl text-[11px] outline-none h-20 resize-none shadow-inner italic"
-                            placeholder="Texto do depoimento..."
+                            onChange={(e) => updateTestimonial(t.id, { text: e.target.value })} 
+                            className="w-full bg-white p-5 rounded-2xl text-[12px] outline-none h-24 resize-none shadow-inner italic leading-relaxed border border-gray-100 focus:border-[#D5BDAF] transition-all" 
+                            placeholder="Texto do depoimento impactante..." 
                         />
-                        <div className="flex items-center gap-2">
-                            <span className="text-[9px] uppercase font-bold text-gray-400">Avaliação:</span>
-                            <div className="flex gap-1">
-                                {[1,2,3,4,5].map(v => (
-                                    <button key={v} onClick={() => updateTestimonial(t.id, { rating: v })} className={`${t.rating >= v ? 'text-[#D5BDAF]' : 'text-gray-200'}`}><Star size={12} fill="currentColor"/></button>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 ))}
             </div>
           </section>
 
-          {/* Instagram Management */}
+          {/* SEC INSTAGRAM */}
           <section id="sec-instagram" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6">
               <h2 className="text-xl font-serif flex items-center space-x-3"><Instagram size={20} className="text-[#D5BDAF]" /><span>Instagram Showcase</span></h2>
-              <button 
-                onClick={() => updateField('instagramSection', { ...(localSettings?.instagramSection || {}), enabled: !(localSettings?.instagramSection?.enabled ?? false) })} 
-                className={`w-14 h-7 rounded-full relative transition-all ${localSettings?.instagramSection?.enabled ? 'bg-[#D5BDAF] shadow-lg shadow-[#D5BDAF]/20' : 'bg-gray-200'}`}
-              >
-                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings?.instagramSection?.enabled ? 'right-1' : 'left-1'}`} />
+              <button onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, enabled: !localSettings.instagramSection.enabled })} className={`w-14 h-7 rounded-full relative transition-all ${localSettings.instagramSection.enabled ? 'bg-[#D5BDAF] shadow-lg shadow-[#D5BDAF]/20' : 'bg-gray-200'}`}>
+                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${localSettings.instagramSection.enabled ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
-            
             <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl mb-4">
                   <div className="flex items-center gap-3">
-                    <Radio size={16} className={localSettings?.instagramSection?.useApi ? 'text-[#D5BDAF]' : 'text-gray-400'} />
-                    <span className="text-[10px] uppercase font-bold tracking-widest">Usar Instagram Graph API (Automático)</span>
+                    <Radio size={16} className={localSettings.instagramSection.useApi ? 'text-[#D5BDAF]' : 'text-gray-400'} />
+                    <span className="text-[10px] uppercase font-bold tracking-widest">Alimentar via API do Instagram</span>
                   </div>
-                  <button 
-                    onClick={() => updateField('instagramSection', { ...localSettings?.instagramSection, useApi: !localSettings?.instagramSection?.useApi })} 
-                    className={`w-10 h-5 rounded-full relative transition-all ${localSettings?.instagramSection?.useApi ? 'bg-[#D5BDAF]' : 'bg-gray-300'}`}
-                  >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${localSettings?.instagramSection?.useApi ? 'right-0.5' : 'left-0.5'}`} />
+                  <button onClick={() => updateField('instagramSection', { ...localSettings.instagramSection, useApi: !localSettings.instagramSection.useApi })} className={`w-10 h-5 rounded-full relative transition-all ${localSettings.instagramSection.useApi ? 'bg-[#D5BDAF]' : 'bg-gray-300'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${localSettings.instagramSection.useApi ? 'right-0.5' : 'left-0.5'}`} />
                   </button>
                 </div>
-
-                {localSettings?.instagramSection?.useApi && (
-                  <div className="p-6 border border-gray-100 rounded-[2rem] space-y-6 bg-[#FAF7F2]/30">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Key size={12}/> Access Token</label>
-                        <input 
-                          type="password" 
-                          value={localSettings?.instagramSection?.accessToken || ''} 
-                          onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, accessToken: e.target.value })} 
-                          className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm"
-                          placeholder="Instagram Graph API Token"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><User size={12}/> User ID</label>
-                        <input 
-                          type="text" 
-                          value={localSettings?.instagramSection?.userId || ''} 
-                          onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, userId: e.target.value })} 
-                          className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm"
-                          placeholder="Sua ID de Usuário"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4 flex items-center gap-2"><Hash size={12}/> Qtd. de Posts (6 a 9)</label>
-                        <select 
-                          value={localSettings?.instagramSection?.fetchCount || 8} 
-                          onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, fetchCount: parseInt(e.target.value) })} 
-                          className="w-full px-6 py-4 rounded-full bg-white border outline-none text-sm appearance-none"
-                        >
-                          {[6,7,8,9].map(n => <option key={n} value={n}>{n} posts</option>)}
-                        </select>
-                    </div>
-                    <p className="text-[9px] text-gray-400 ml-4 italic">Se a API falhar ou não estiver configurada, usaremos os posts manuais abaixo como fallback.</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Título da Seção</label>
-                        <input 
-                            type="text" 
-                            value={localSettings?.instagramSection?.title || ''} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, title: e.target.value })} 
-                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Texto do Botão</label>
-                        <input 
-                            type="text" 
-                            value={localSettings?.instagramSection?.buttonText || ''} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, buttonText: e.target.value })} 
-                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
-                        />
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Username (ex: @detalhes)</label>
-                        <input 
-                            type="text" 
-                            value={localSettings?.instagramSection?.username || ''} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, username: e.target.value })} 
-                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Link do Perfil</label>
-                        <input 
-                            type="text" 
-                            value={localSettings?.instagramSection?.profileUrl || ''} 
-                            onChange={(e) => updateField('instagramSection', { ...localSettings?.instagramSection, profileUrl: e.target.value })} 
-                            className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm"
-                        />
-                    </div>
-                </div>
-
                 <div className="pt-6">
                     <div className="flex justify-between items-center mb-6">
-                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Posts Manuais (Fallback)</label>
+                        <label className="text-[10px] uppercase font-bold text-gray-400 ml-4">Curadoria Manual de Fotos</label>
                         <button onClick={addInstagramPost} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {(localSettings?.instagramSection?.posts || []).map((post) => (
-                            <div key={post.id} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group">
-                                {post.imageUrl ? (
-                                    <img src={post.imageUrl} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                        <ImageIcon size={24} />
-                                    </div>
-                                )}
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col p-4 justify-between">
-                                    <button 
-                                        onClick={() => removeInstagramPost(post.id)} 
-                                        className="self-end p-2 bg-red-500 text-white rounded-full"
-                                    >
-                                        <Trash2 size={12} />
-                                    </button>
-                                    <input 
-                                        type="text" 
-                                        placeholder="URL da Imagem"
-                                        value={post.imageUrl || ''}
-                                        onChange={(e) => updateInstagramPost(post.id, e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg bg-white/90 text-[9px] outline-none"
-                                    />
+                        {(localSettings.instagramSection.posts || []).map((post) => (
+                            <div key={post.id} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group shadow-sm border border-gray-100">
+                                {post.imageUrl ? <img src={post.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={24} /></div>}
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col p-4 justify-between">
+                                    <button onClick={() => removeInstagramPost(post.id)} className="self-end p-2 bg-red-500 text-white rounded-full"><Trash2 size={12} /></button>
+                                    <input type="text" placeholder="URL da Foto" value={post.imageUrl || ''} onChange={(e) => updateInstagramPost(post.id, e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/90 text-[8px] uppercase font-bold outline-none" />
                                 </div>
                             </div>
                         ))}
@@ -636,65 +536,54 @@ const AdminSettings: React.FC = () => {
             </div>
           </section>
 
-          {/* FAQ Management */}
+          {/* SEC FAQ */}
           <section id="sec-faq" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-8 scroll-mt-36 md:scroll-mt-32">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6">
-              <h2 className="text-xl font-serif flex items-center space-x-3"><HelpCircle size={20} className="text-[#D5BDAF]" /><span>FAQ - Dúvidas Frequentes</span></h2>
+              <h2 className="text-xl font-serif flex items-center space-x-3"><HelpCircle size={20} className="text-[#D5BDAF]" /><span>FAQ & Suporte</span></h2>
               <button onClick={addFaq} className="bg-black text-white p-2 rounded-full shadow-lg"><Plus size={16}/></button>
             </div>
             <div className="space-y-6">
                 {(localSettings?.faqs || []).map((f) => (
                     <div key={f.id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
-                        <div className="flex justify-between items-start">
-                            <input 
-                                type="text" 
-                                value={f.question || ''} 
-                                onChange={(e) => updateFaq(f.id, { question: e.target.value })}
-                                className="bg-transparent font-bold uppercase tracking-widest text-[10px] outline-none border-b border-gray-200 pb-1 w-full mr-12"
-                                placeholder="Pergunta"
-                            />
+                        <div className="flex justify-between items-start gap-4">
+                            <input type="text" value={f.question || ''} onChange={(e) => updateFaq(f.id, { question: e.target.value })} className="bg-white px-6 py-3 rounded-full border border-transparent focus:border-[#D5BDAF]/20 font-bold uppercase tracking-widest text-[9px] outline-none w-full" placeholder="Pergunta (Ex: Qual o prazo de envio?)" />
                             <div className="flex items-center gap-2">
-                                <button onClick={() => updateFaq(f.id, { enabled: !f.enabled })} className={`p-2 transition-colors ${f.enabled ? 'text-[#D5BDAF]' : 'text-gray-300'}`}>{f.enabled ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
-                                <button onClick={() => removeFaq(f.id)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={14}/></button>
+                                <button onClick={() => updateFaq(f.id, { enabled: !f.enabled })} className={`p-2 transition-colors ${f.enabled ? 'text-[#D5BDAF]' : 'text-gray-300'}`}>{f.enabled ? <Eye size={16}/> : <EyeOff size={16}/>}</button>
+                                <button onClick={() => removeFaq(f.id)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={16}/></button>
                             </div>
                         </div>
-                        <textarea 
-                            value={f.answer || ''} 
-                            onChange={(e) => updateFaq(f.id, { answer: e.target.value })}
-                            className="w-full bg-white p-4 rounded-2xl text-[11px] outline-none h-24 resize-none shadow-inner"
-                            placeholder="Resposta detalhada..."
-                        />
+                        <textarea value={f.answer || ''} onChange={(e) => updateFaq(f.id, { answer: e.target.value })} className="w-full bg-white p-5 rounded-2xl text-[11px] outline-none h-24 resize-none shadow-inner border border-gray-100 focus:border-[#D5BDAF]/20" placeholder="Resposta detalhada para o cliente..." />
                     </div>
                 ))}
             </div>
           </section>
 
-          {/* Taxonomy */}
+          {/* SEC TAXONOMIA */}
           <section id="sec-taxonomy" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-12 scroll-mt-36 md:scroll-mt-32">
-            <h2 className="text-xl font-serif border-b border-gray-50 pb-6 flex items-center space-x-3"><TagIcon size={20} className="text-[#D5BDAF]" /><span>Taxonomia da Loja</span></h2>
+            <h2 className="text-xl font-serif border-b border-gray-50 pb-6 flex items-center space-x-3"><TagIcon size={20} className="text-[#D5BDAF]" /><span>Organização do Catálogo</span></h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-4">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-4 italic">Categorias</label>
-                    <div className="flex gap-2"><input type="text" value={newCat} onChange={(e) => setNewCat(e.target.value)} className="flex-grow px-6 py-3 bg-gray-50 border rounded-full text-xs outline-none focus:bg-white" /><button onClick={() => addItem('categories', newCat, setNewCat)} className="bg-black text-white p-3 rounded-full"><Plus size={14}/></button></div>
-                    <div className="flex flex-wrap gap-2">{(localSettings?.categories || []).map(c => <div key={c} className="bg-gray-100 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{c}<button onClick={() => removeItem('categories', c)} className="text-gray-400 hover:text-red-500">×</button></div>)}</div>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-4 italic">Categorias de Menu</label>
+                    <div className="flex gap-2"><input type="text" value={newCat} onChange={(e) => setNewCat(e.target.value)} className="flex-grow px-6 py-3 bg-gray-50 border rounded-full text-xs outline-none focus:bg-white transition" placeholder="Ex: Anéis" /><button onClick={() => addItem('categories', newCat, setNewCat)} className="bg-black text-white p-3 rounded-full"><Plus size={14}/></button></div>
+                    <div className="flex flex-wrap gap-2">{(localSettings?.categories || []).map(c => <div key={c} className="bg-gray-100 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{c}<button onClick={() => removeItem('categories', c)} className="text-gray-400 hover:text-red-500 font-bold">×</button></div>)}</div>
                 </div>
                 <div className="space-y-4">
-                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-4 italic">Tags de Destaque</label>
-                    <div className="flex gap-2"><input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} className="flex-grow px-6 py-3 bg-gray-50 border rounded-full text-xs outline-none focus:bg-white" /><button onClick={() => addItem('tags', newTag, setNewTag)} className="bg-black text-white p-3 rounded-full"><Plus size={14}/></button></div>
-                    <div className="flex flex-wrap gap-2">{(localSettings?.tags || []).map(t => <div key={t} className="bg-[#FAF7F2] border border-[#D5BDAF]/20 text-[#D5BDAF] px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{t}<button onClick={() => removeItem('tags', t)} className="text-[#D5BDAF]/40 hover:text-red-500">×</button></div>)}</div>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-4 italic">Coleções & Tags</label>
+                    <div className="flex gap-2"><input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} className="flex-grow px-6 py-3 bg-gray-50 border rounded-full text-xs outline-none focus:bg-white transition" placeholder="Ex: Noite" /><button onClick={() => addItem('tags', newTag, setNewTag)} className="bg-black text-white p-3 rounded-full"><Plus size={14}/></button></div>
+                    <div className="flex flex-wrap gap-2">{(localSettings?.tags || []).map(t => <div key={t} className="bg-gray-100 px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-3">{t}<button onClick={() => removeItem('tags', t)} className="text-gray-400 hover:text-red-500 font-bold">×</button></div>)}</div>
                 </div>
             </div>
           </section>
 
-          {/* Segurança */}
+          {/* SEC SECURITY */}
           <section id="sec-security" className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm space-y-10 scroll-mt-36 md:scroll-mt-32">
-            <div className="flex justify-between items-center border-b border-gray-50 pb-6"><h2 className="text-xl font-serif flex items-center space-x-3"><ShieldCheck size={20} className="text-[#D5BDAF]" /><span>Acesso ADM</span></h2><button onClick={() => { setEditingUser({username: '', role: 'editor'}); setShowUserModal(true); }} className="text-[#D5BDAF] p-2 hover:bg-[#FAF7F2] rounded-full transition-colors"><UserPlus size={20} /></button></div>
+            <div className="flex justify-between items-center border-b border-gray-50 pb-6"><h2 className="text-xl font-serif flex items-center space-x-3"><ShieldCheck size={20} className="text-[#D5BDAF]" /><span>Acessos Administrativos</span></h2><button onClick={() => { setEditingUser({username: '', role: 'editor'}); setShowUserModal(true); }} className="bg-[#D5BDAF] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><UserPlus size={18} /></button></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{(adminUsers || []).map(user => (
-                <div key={user.id} className="p-4 bg-gray-50 rounded-3xl flex items-center justify-between group border border-transparent hover:border-[#D5BDAF]/20 transition-all">
+                <div key={user.id} className="p-5 bg-gray-50 rounded-3xl flex items-center justify-between group border border-transparent hover:border-[#D5BDAF]/20 transition-all">
                     <div><p className="text-xs font-bold uppercase tracking-widest text-gray-800">{user.username}</p><p className="text-[8px] text-gray-400 uppercase font-bold">{user.role}</p></div>
                     <div className="flex gap-2">
-                       <button onClick={() => { setEditingUser({id: user.id, username: user.username, role: user.role}); setShowUserModal(true); }} className="p-2 text-gray-300 hover:text-[#D5BDAF]"><Pencil size={14}/></button>
-                       <button onClick={() => deleteAdminUser(user.id)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={14}/></button>
+                       <button onClick={() => { setEditingUser({id: user.id, username: user.username, role: user.role}); setShowUserModal(true); }} className="p-2 text-gray-300 hover:text-[#D5BDAF] transition-colors"><Pencil size={14}/></button>
+                       <button onClick={() => deleteAdminUser(user.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
                     </div>
                 </div>
             ))}</div>
@@ -703,26 +592,20 @@ const AdminSettings: React.FC = () => {
       </div>
 
       {showUserModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[110] flex items-center justify-center p-6 animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 md:p-10 space-y-8 shadow-2xl overflow-hidden">
-            <h2 className="text-2xl font-serif text-center">{editingUser?.id ? 'Editar Admin' : 'Novo Admin'}</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-center justify-center p-6 animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 md:p-10 space-y-8 shadow-2xl overflow-hidden border border-gray-100">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-serif">{editingUser?.id ? 'Editar Acesso' : 'Novo Administrador'}</h2>
+              <p className="text-[9px] uppercase tracking-widest text-gray-400 font-bold italic">Proteja a integridade da sua marca</p>
+            </div>
             <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[9px] uppercase font-bold text-gray-400 ml-4 tracking-widest">Usuário</label>
-                <input type="text" value={editingUser?.username || ''} onChange={e => setEditingUser(prev => prev ? {...prev, username: e.target.value} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9px] uppercase font-bold text-gray-400 ml-4 tracking-widest">Senha</label>
-                <input type="password" value={editingUser?.password || ''} onChange={e => setEditingUser(prev => prev ? {...prev, password: e.target.value} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9px] uppercase font-bold text-gray-400 ml-4 tracking-widest">Cargo</label>
-                <select value={editingUser?.role || 'editor'} onChange={e => setEditingUser(prev => prev ? {...prev, role: e.target.value as any} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border outline-none text-sm appearance-none"><option value="editor">Editor</option><option value="superadmin">Super Admin</option></select>
-              </div>
+                <input type="text" value={editingUser?.username || ''} onChange={e => setEditingUser(prev => prev ? {...prev, username: e.target.value} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border border-transparent focus:bg-white focus:border-[#D5BDAF]/20 outline-none text-sm transition shadow-inner" placeholder="Nome de Usuário" />
+                <input type="password" value={editingUser?.password || ''} onChange={e => setEditingUser(prev => prev ? {...prev, password: e.target.value} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border border-transparent focus:bg-white focus:border-[#D5BDAF]/20 outline-none text-sm transition shadow-inner" placeholder="Nova Senha" />
+                <select value={editingUser?.role || 'editor'} onChange={e => setEditingUser(prev => prev ? {...prev, role: e.target.value as any} : null)} className="w-full px-6 py-4 rounded-full bg-gray-50 border border-transparent focus:bg-white focus:border-[#D5BDAF]/20 outline-none text-xs uppercase font-bold tracking-widest appearance-none transition shadow-inner"><option value="editor">Perfil: Editor</option><option value="superadmin">Perfil: Super Admin</option></select>
             </div>
             <div className="flex flex-col gap-3">
-               <button onClick={handleSaveUser} className="w-full py-4 bg-[#212529] text-white rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl transition-transform active:scale-95">Salvar Acesso</button>
-               <button onClick={() => setShowUserModal(false)} className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">Cancelar</button>
+               <button onClick={handleSaveUser} className="w-full py-5 bg-[#212529] text-white rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl transition-all hover:bg-black active:scale-95">Salvar Credenciais</button>
+               <button onClick={() => setShowUserModal(false)} className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">Fechar</button>
             </div>
         </div></div>
       )}

@@ -31,9 +31,9 @@ export const INITIAL_SETTINGS: StoreSettings = {
     { icon: 'Shield', text: 'Garantia Premium', enabled: true }
   ],
   testimonials: [
-    { id: '1', name: 'Ana Beatriz', text: 'As peças são impecáveis. O brilho do banho é muito superior ao que eu esperava. Com certeza voltarei a comprar.', rating: 5, enabled: true },
-    { id: '2', name: 'Carla Silveira', text: 'Atendimento nota mil via WhatsApp. Me ajudaram a escolher o presente perfeito e chegou em 2 dias.', rating: 5, enabled: true },
-    { id: '3', name: 'Mariana Costa', text: 'Embalagem linda e cheirosa! Um detalhe que faz toda a diferença.', rating: 5, enabled: true }
+    { id: '1', name: 'Ana Beatriz', text: 'As peças são impecáveis. O brilho do banho é muito superior ao que eu esperava. Com certeza voltarei a comprar.', rating: 5, enabled: true, isVerified: true },
+    { id: '2', name: 'Carla Silveira', text: 'Atendimento nota mil via WhatsApp. Me ajudaram a escolher o presente perfeito e chegou em 2 dias.', rating: 5, enabled: true, isVerified: true },
+    { id: '3', name: 'Mariana Costa', text: 'Embalagem linda e cheirosa! Um detalhe que faz toda a diferença.', rating: 5, enabled: true, isVerified: true }
   ],
   faqs: [
     { id: '1', question: 'As peças possuem garantia?', answer: 'Sim! Todas as nossas semijoias possuem 1 ano de garantia no banho e garantia vitalícia contra defeitos de fabricação.', enabled: true },

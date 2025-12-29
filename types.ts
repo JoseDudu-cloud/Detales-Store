@@ -37,6 +37,7 @@ export interface Testimonial {
   text: string;
   rating: number;
   enabled: boolean;
+  isVerified?: boolean;
 }
 
 export interface FAQItem {
