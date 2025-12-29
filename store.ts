@@ -28,7 +28,7 @@ const safeSessionStorage = {
   },
   setItem: (key: string, value: string) => {
     if (typeof window === 'undefined') return;
-    try { sessionStorage.setItem(key, value); } catch (e) {}
+    try { localStorage.setItem(key, value); } catch (e) {}
   },
   removeItem: (key: string) => {
     if (typeof window === 'undefined') return;
@@ -105,64 +105,80 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const hydrate = async () => {
       setIsInitialLoading(true);
 
-      // Hydrate local data first
+      // Hydrate local UI state (Cart/Admin Session)
       const savedCart = safeLocalStorage.getItem('detalhes_cart');
       if (savedCart) { try { setCart(JSON.parse(savedCart)); } catch (e) {} }
       const savedAdmin = safeSessionStorage.getItem('detalhes_admin');
       if (savedAdmin) { try { setAdmin(JSON.parse(savedAdmin)); } catch (e) {} }
 
-      let hasAnySuccess = false;
+      let settingsLoaded = false;
+      let productsLoaded = false;
 
-      // 1. Fetch General Settings
+      // 1. Fetch General Settings (CRITICAL)
       try {
-        const { data: settingsData, error } = await supabase.from('site_settings').select('data').eq('id', 1).maybeSingle();
+        const { data: settingsData, error } = await supabase
+          .from('site_settings')
+          .select('data')
+          .eq('id', 1)
+          .single();
+        
         if (settingsData?.data) {
+          // Absolute override from DB
           setSettingsState(prev => ({ ...prev, ...settingsData.data }));
-          hasAnySuccess = true;
+          settingsLoaded = true;
+        } else if (error) {
+          console.error("Supabase Settings Error:", error.message);
         }
-      } catch (e) { console.error("Settings Fetch Error", e); }
+      } catch (e) { console.error("Settings Hydration Exception", e); }
 
-      // 2. Fetch Products
+      // 2. Fetch Products (CRITICAL)
       try {
-        const { data: productsData } = await supabase.from('products').select('*').order('createdAt', { ascending: false });
+        const { data: productsData, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('createdAt', { ascending: false });
+        
         if (productsData && productsData.length > 0) {
           setProductsState(productsData);
-          hasAnySuccess = true;
+          productsLoaded = true;
+        } else if (error) {
+          console.error("Supabase Products Error:", error.message);
         }
-      } catch (e) { console.error("Products Fetch Error", e); }
+      } catch (e) { console.error("Products Hydration Exception", e); }
 
-      // 3. Fetch FAQ
+      // 3. Fetch FAQ & Testimonials (Granular updates)
       try {
-        const { data: faqData } = await supabase.from('faq').select('*');
-        if (faqData) {
-          setSettingsState(prev => ({ ...prev, faqs: faqData }));
+        const [faqRes, testimonialsRes] = await Promise.all([
+          supabase.from('faq').select('*'),
+          supabase.from('testimonials').select('*')
+        ]);
+        
+        if (faqRes.data) {
+          setSettingsState(prev => ({ ...prev, faqs: faqRes.data }));
         }
-      } catch (e) { console.error("FAQ Fetch Error", e); }
-
-      // 4. Fetch Testimonials
-      try {
-        const { data: testimonialsData } = await supabase.from('testimonials').select('*');
-        if (testimonialsData) {
-          setSettingsState(prev => ({ ...prev, testimonials: testimonialsData }));
+        if (testimonialsRes.data) {
+          setSettingsState(prev => ({ ...prev, testimonials: testimonialsRes.data }));
         }
-      } catch (e) { console.error("Testimonials Fetch Error", e); }
+      } catch (e) { console.error("Secondary Data Fetch Error", e); }
 
-      // 5. Fetch Analytics (Public data)
+      // 4. Fetch Analytics (Public)
       try {
         const { data: analyticsData } = await supabase.from('analytics').select('*').eq('id', 1).maybeSingle();
         if (analyticsData) setAnalytics(analyticsData);
-      } catch (e) { console.error("Analytics Fetch Error", e); }
+      } catch (e) { console.error("Analytics Sync Error", e); }
 
-      // 6. Fetch Admin Users (May fail for public users due to RLS)
+      // 5. Fetch Admin Users (This will fail for anonymous users - Expected)
       try {
         const { data: adminsData } = await supabase.from('admin_users').select('*');
         if (adminsData && adminsData.length > 0) setAdminUsers(adminsData);
-      } catch (e) { /* Silent fail for public users */ }
+      } catch (e) { /* Expected failure for non-admins */ }
 
-      setDbStatus(hasAnySuccess ? 'connected' : 'error');
-      
-      // Secondary fallback to local storage if DB completely fails
-      if (!hasAnySuccess) {
+      // Update DB Status based on critical data success
+      if (settingsLoaded && productsLoaded) {
+        setDbStatus('connected');
+      } else {
+        setDbStatus('error');
+        // If DB fails and we have local backup, use it, but keep status as error
         const localSettings = safeLocalStorage.getItem('detalhes_settings');
         if (localSettings) {
           setSettingsState(prev => ({ ...prev, ...JSON.parse(localSettings) }));
@@ -366,9 +382,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const recordEvent = (type: 'view' | 'cart' | 'checkout', pId?: string) => {
     const updatedAnalytics = {
       ...analytics,
-      productViews: type === 'view' ? analytics.productViews + 1 : analytics.productViews,
-      addedToCart: type === 'cart' ? analytics.addedToCart + 1 : analytics.addedToCart,
-      whatsappCheckouts: type === 'checkout' ? analytics.whatsappCheckouts + 1 : analytics.whatsappCheckouts,
+      productViews: type === 'view' ? (analytics.productViews || 0) + 1 : (analytics.productViews || 0),
+      addedToCart: type === 'cart' ? (analytics.addedToCart || 0) + 1 : (analytics.addedToCart || 0),
+      whatsappCheckouts: type === 'checkout' ? (analytics.whatsappCheckouts || 0) + 1 : (analytics.whatsappCheckouts || 0),
     };
     setAnalytics(updatedAnalytics);
     syncAnalytics(updatedAnalytics);
