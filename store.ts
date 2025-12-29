@@ -6,7 +6,7 @@ import { INITIAL_SETTINGS, INITIAL_PRODUCTS } from './constants';
 
 // --- SUPABASE CONFIGURATION ---
 const SB_URL = (process.env as any).NEXT_PUBLIC_SUPABASE_URL || 'https://sagrvdjfqxfrrwruchcg.supabase.co';
-const SB_KEY = (process.env as any).NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Placeholder
+const SB_KEY = (process.env as any).NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 
 const supabase = createClient(SB_URL, SB_KEY);
 
@@ -91,7 +91,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [dbStatus, setDbStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [settings, setSettingsState] = useState<StoreSettings>(INITIAL_SETTINGS);
-  const [products, setProductsState] = useState<Product[]>([]);
+  const [products, setProductsState] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([DEFAULT_ADMIN]);
@@ -100,64 +100,76 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     visitors: 0, productViews: 0, addedToCart: 0, whatsappCheckouts: 0, abandonedCarts: 0, revenue: 0
   });
 
-  // --- GLOBAL HYDRATION ---
+  // --- RESILIENT GLOBAL HYDRATION ---
   useEffect(() => {
     const hydrate = async () => {
       setIsInitialLoading(true);
 
+      // Hydrate local data first
       const savedCart = safeLocalStorage.getItem('detalhes_cart');
       if (savedCart) { try { setCart(JSON.parse(savedCart)); } catch (e) {} }
       const savedAdmin = safeSessionStorage.getItem('detalhes_admin');
       if (savedAdmin) { try { setAdmin(JSON.parse(savedAdmin)); } catch (e) {} }
 
+      let hasAnySuccess = false;
+
+      // 1. Fetch General Settings
       try {
-        const [
-          settingsRes,
-          productsRes,
-          faqRes,
-          testimonialsRes,
-          adminsRes,
-          analyticsRes
-        ] = await Promise.all([
-          supabase.from('site_settings').select('data').eq('id', 1).maybeSingle(),
-          supabase.from('products').select('*').order('createdAt', { ascending: false }),
-          supabase.from('faq').select('*'),
-          supabase.from('testimonials').select('*'),
-          supabase.from('admin_users').select('*'),
-          supabase.from('analytics').select('*').eq('id', 1).maybeSingle()
-        ]);
-
-        if (productsRes.data && productsRes.data.length > 0) {
-          setProductsState(productsRes.data);
-        } else {
-          setProductsState(INITIAL_PRODUCTS);
+        const { data: settingsData, error } = await supabase.from('site_settings').select('data').eq('id', 1).maybeSingle();
+        if (settingsData?.data) {
+          setSettingsState(prev => ({ ...prev, ...settingsData.data }));
+          hasAnySuccess = true;
         }
+      } catch (e) { console.error("Settings Fetch Error", e); }
 
-        if (adminsRes.data && adminsRes.data.length > 0) {
-          setAdminUsers(adminsRes.data);
+      // 2. Fetch Products
+      try {
+        const { data: productsData } = await supabase.from('products').select('*').order('createdAt', { ascending: false });
+        if (productsData && productsData.length > 0) {
+          setProductsState(productsData);
+          hasAnySuccess = true;
         }
+      } catch (e) { console.error("Products Fetch Error", e); }
 
-        if (analyticsRes.data) {
-          setAnalytics(analyticsRes.data);
+      // 3. Fetch FAQ
+      try {
+        const { data: faqData } = await supabase.from('faq').select('*');
+        if (faqData) {
+          setSettingsState(prev => ({ ...prev, faqs: faqData }));
         }
+      } catch (e) { console.error("FAQ Fetch Error", e); }
 
-        let remoteSettings = settingsRes.data?.data || INITIAL_SETTINGS;
-        
-        // Merge with separate table data for robustness
-        if (faqRes.data) remoteSettings.faqs = faqRes.data;
-        if (testimonialsRes.data) remoteSettings.testimonials = testimonialsRes.data;
-        
-        setSettingsState({ ...INITIAL_SETTINGS, ...remoteSettings });
-        setDbStatus('connected');
+      // 4. Fetch Testimonials
+      try {
+        const { data: testimonialsData } = await supabase.from('testimonials').select('*');
+        if (testimonialsData) {
+          setSettingsState(prev => ({ ...prev, testimonials: testimonialsData }));
+        }
+      } catch (e) { console.error("Testimonials Fetch Error", e); }
 
-      } catch (e) {
-        console.error("Supabase Hydration Error:", e);
-        setDbStatus('error');
+      // 5. Fetch Analytics (Public data)
+      try {
+        const { data: analyticsData } = await supabase.from('analytics').select('*').eq('id', 1).maybeSingle();
+        if (analyticsData) setAnalytics(analyticsData);
+      } catch (e) { console.error("Analytics Fetch Error", e); }
+
+      // 6. Fetch Admin Users (May fail for public users due to RLS)
+      try {
+        const { data: adminsData } = await supabase.from('admin_users').select('*');
+        if (adminsData && adminsData.length > 0) setAdminUsers(adminsData);
+      } catch (e) { /* Silent fail for public users */ }
+
+      setDbStatus(hasAnySuccess ? 'connected' : 'error');
+      
+      // Secondary fallback to local storage if DB completely fails
+      if (!hasAnySuccess) {
         const localSettings = safeLocalStorage.getItem('detalhes_settings');
-        if (localSettings) setSettingsState({ ...INITIAL_SETTINGS, ...JSON.parse(localSettings) });
-      } finally {
-        setIsInitialLoading(false);
+        if (localSettings) {
+          setSettingsState(prev => ({ ...prev, ...JSON.parse(localSettings) }));
+        }
       }
+
+      setIsInitialLoading(false);
     };
 
     hydrate();
@@ -167,10 +179,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const syncSettings = useCallback(async (newSettings: StoreSettings) => {
     safeLocalStorage.setItem('detalhes_settings', JSON.stringify(newSettings));
     try {
+      // Upsert main settings object
       await supabase.from('site_settings').upsert([{ id: 1, data: newSettings }]);
-      // Sync FAQ and Testimonials to specific tables too
-      if (newSettings.faqs) await supabase.from('faq').upsert(newSettings.faqs);
-      if (newSettings.testimonials) await supabase.from('testimonials').upsert(newSettings.testimonials);
+      
+      // Sync sub-tables for individual record persistence
+      if (newSettings.faqs?.length) {
+        await supabase.from('faq').upsert(newSettings.faqs);
+      }
+      if (newSettings.testimonials?.length) {
+        await supabase.from('testimonials').upsert(newSettings.testimonials);
+      }
     } catch (e) {
       console.warn("Global settings sync failed:", e);
     }
@@ -223,7 +241,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setProducts = (newProducts: Product[]) => {
     setProductsState(newProducts);
-    // Note: Global sync for whole array is expensive, better sync item by item
   };
   
   const addProduct = (p: Product) => {
@@ -360,8 +377,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (p.id === pId) {
                 const updatedP = {
                     ...p,
-                    viewCount: p.viewCount + (type === 'view' ? 1 : 0),
-                    cartAddCount: p.cartAddCount + (type === 'cart' ? 1 : 0)
+                    viewCount: (p.viewCount || 0) + (type === 'view' ? 1 : 0),
+                    cartAddCount: (p.cartAddCount || 0) + (type === 'cart' ? 1 : 0)
                 };
                 syncProduct(updatedP, 'upsert');
                 return updatedP;
