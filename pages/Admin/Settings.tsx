@@ -14,20 +14,26 @@ import { StoreSettings, Testimonial } from '../../types';
 const AdminSettings: React.FC = () => {
   const { settings, setSettings, adminUsers, deleteAdminUser, createAdminUser, updateAdminUser, showNotification } = useStore();
   
+  // Inicialização robusta mesclando constantes com o que vem do banco
   const [localSettings, setLocalSettings] = useState<StoreSettings>(() => ({
     ...INITIAL_SETTINGS,
     ...(settings || {}),
+    socialLinks: { ...INITIAL_SETTINGS.socialLinks, ...(settings?.socialLinks || {}) },
+    institutional: { ...INITIAL_SETTINGS.institutional, ...(settings?.institutional || {}) },
     instagramSection: {
       ...INITIAL_SETTINGS.instagramSection,
       ...(settings?.instagramSection || {})
     }
   }));
 
+  // Sincroniza o estado local quando os dados globais terminam de carregar do Supabase
   useEffect(() => {
     if (settings) {
       setLocalSettings(prev => ({
         ...prev,
         ...settings,
+        socialLinks: { ...INITIAL_SETTINGS.socialLinks, ...(settings.socialLinks || {}) },
+        institutional: { ...INITIAL_SETTINGS.institutional, ...(settings.institutional || {}) },
         instagramSection: {
           ...INITIAL_SETTINGS.instagramSection,
           ...(settings.instagramSection || {})

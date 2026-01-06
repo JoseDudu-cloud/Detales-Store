@@ -5,7 +5,6 @@ import { StoreSettings, Product, AnalyticsData, CartItem, AdminUser, FAQItem, Te
 import { INITIAL_SETTINGS, INITIAL_PRODUCTS } from './constants';
 
 // --- SUPABASE CONFIGURATION ---
-// Credentials must be provided via environment variables in Vercel/Local env.
 const SB_URL = (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || '';
 const SB_KEY = (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || '';
 
@@ -50,6 +49,8 @@ interface Notification {
   message: string;
 }
 
+export type SyncStatus = 'synced' | 'error' | 'checking';
+
 interface StoreContextType {
   settings: StoreSettings;
   setSettings: (settings: StoreSettings) => void;
@@ -75,6 +76,7 @@ interface StoreContextType {
   notifications: Notification[];
   showNotification: (message: string) => void;
   isInitialLoading: boolean;
+  syncStatus: SyncStatus;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -106,15 +108,18 @@ const mergeWithDefaults = (loaded: any): StoreSettings => {
       ...INITIAL_SETTINGS.institutional,
       ...(loaded?.institutional || {})
     },
-    hotbarMessages: loaded?.hotbarMessages || INITIAL_SETTINGS.hotbarMessages,
-    trustIcons: loaded?.trustIcons || INITIAL_SETTINGS.trustIcons,
-    categories: loaded?.categories || INITIAL_SETTINGS.categories,
-    tags: loaded?.tags || INITIAL_SETTINGS.tags
+    hotbarMessages: Array.isArray(loaded?.hotbarMessages) ? loaded.hotbarMessages : INITIAL_SETTINGS.hotbarMessages,
+    trustIcons: Array.isArray(loaded?.trustIcons) ? loaded.trustIcons : INITIAL_SETTINGS.trustIcons,
+    categories: Array.isArray(loaded?.categories) ? loaded.categories : INITIAL_SETTINGS.categories,
+    tags: Array.isArray(loaded?.tags) ? loaded.tags : INITIAL_SETTINGS.tags,
+    testimonials: Array.isArray(loaded?.testimonials) ? loaded.testimonials : INITIAL_SETTINGS.testimonials,
+    faqs: Array.isArray(loaded?.faqs) ? loaded.faqs : INITIAL_SETTINGS.faqs
   };
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('checking');
   const [settings, setSettingsState] = useState<StoreSettings>(INITIAL_SETTINGS);
   const [products, setProductsState] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -129,8 +134,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const hydrate = async () => {
       setIsInitialLoading(true);
+      setSyncStatus('checking');
       
-      // Load local cart/session (Browser state)
       const savedCart = safeLocalStorage.getItem('detalhes_cart');
       if (savedCart) {
         try { setCart(JSON.parse(savedCart)); } catch (e) {}
@@ -142,7 +147,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (supabase) {
         try {
-          // Parallel fetch from specific tables for source of truth
           const [
             settingsRes,
             productsRes,
@@ -153,8 +157,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             categoriesRes,
             collectionsRes
           ] = await Promise.all([
-            supabase.from('site_settings').select('data').eq('id', 1).single(),
-            supabase.from('products').select('*'),
+            supabase.from('site_settings').select('data').eq('id', 1).maybeSingle(),
+            supabase.from('products').select('*').order('createdAt', { ascending: false }),
             supabase.from('faq').select('*'),
             supabase.from('testimonials').select('*'),
             supabase.from('admin_users').select('*'),
@@ -163,27 +167,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             supabase.from('collections').select('name')
           ]);
 
-          // Handle Products
-          if (productsRes.data) {
-            setProductsState(productsRes.data.length > 0 ? productsRes.data : []);
+          if (settingsRes.error || productsRes.error) throw new Error('Sync failed');
+
+          if (productsRes.data && productsRes.data.length > 0) {
+            setProductsState(productsRes.data);
           }
 
-          // Handle Admins
           if (adminsRes.data && adminsRes.data.length > 0) {
             setAdminUsers(adminsRes.data);
           }
 
-          // Handle Analytics
           if (analyticsRes.data) {
             setAnalytics(analyticsRes.data);
           }
 
-          // Compile Global Settings
           let baseSettings = settingsRes.data?.data ? mergeWithDefaults(settingsRes.data.data) : INITIAL_SETTINGS;
           
-          // Override specific fields with table data if available
-          if (faqRes.data) baseSettings.faqs = faqRes.data;
-          if (testimonialsRes.data) baseSettings.testimonials = testimonialsRes.data;
+          if (faqRes.data && faqRes.data.length > 0) baseSettings.faqs = faqRes.data;
+          if (testimonialsRes.data && testimonialsRes.data.length > 0) baseSettings.testimonials = testimonialsRes.data;
           if (categoriesRes.data && categoriesRes.data.length > 0) {
             baseSettings.categories = categoriesRes.data.map((c: any) => c.name);
           }
@@ -193,16 +194,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
           setSettingsState(baseSettings);
 
-          // Seed missing default settings if DB is empty
           if (!settingsRes.data) {
              await supabase.from('site_settings').upsert([{ id: 1, data: INITIAL_SETTINGS }]);
           }
+          setSyncStatus('synced');
 
         } catch (e) {
           console.error("Global storage hydration failed", e);
+          setSyncStatus('error');
         }
       } else {
-        // Fallback to LocalStorage for dev without Supabase
         const savedSettings = safeLocalStorage.getItem('detalhes_settings');
         if (savedSettings) {
           try { setSettingsState(mergeWithDefaults(JSON.parse(savedSettings))); } catch (e) {}
@@ -211,6 +212,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (savedProducts) {
           try { setProductsState(JSON.parse(savedProducts)); } catch (e) {}
         }
+        setSyncStatus('error'); // No supabase config
       }
       
       setIsInitialLoading(false);
@@ -224,10 +226,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     safeLocalStorage.setItem('detalhes_settings', JSON.stringify(newSettings));
     if (supabase) {
       try {
-        // Update main JSONB settings
-        await supabase.from('site_settings').update({ data: newSettings }).eq('id', 1);
+        const { error } = await supabase.from('site_settings').upsert({ id: 1, data: newSettings });
+        if (error) throw error;
         
-        // Sync individual tables to keep them as pure source of truth
         if (newSettings.faqs) {
           await supabase.from('faq').upsert(newSettings.faqs);
         }
@@ -235,20 +236,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           await supabase.from('testimonials').upsert(newSettings.testimonials);
         }
         
-        // Sync Categories
         if (newSettings.categories) {
-            // Complex sync: delete missing, upsert current
             const catPayload = newSettings.categories.map(name => ({ name }));
             await supabase.from('categories').upsert(catPayload, { onConflict: 'name' });
         }
         
-        // Sync Collections (Tags)
         if (newSettings.tags) {
             const colPayload = newSettings.tags.map(name => ({ name }));
             await supabase.from('collections').upsert(colPayload, { onConflict: 'name' });
         }
+        setSyncStatus('synced');
       } catch (e) {
         console.warn("Settings sync failed", e);
+        setSyncStatus('error');
       }
     }
   }, []);
@@ -257,12 +257,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (supabase) {
       try {
         if (action === 'delete') {
-          await supabase.from('products').delete().eq('id', p.id);
+          const { error } = await supabase.from('products').delete().eq('id', p.id);
+          if (error) throw error;
         } else {
-          await supabase.from('products').upsert(p);
+          const { error } = await supabase.from('products').upsert(p);
+          if (error) throw error;
         }
+        setSyncStatus('synced');
       } catch (e) {
         console.warn("Product sync failed", e);
+        setSyncStatus('error');
       }
     }
   }, []);
@@ -271,12 +275,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (supabase) {
       try {
         if (action === 'delete') {
-          await supabase.from('admin_users').delete().eq('id', user.id);
+          const { error } = await supabase.from('admin_users').delete().eq('id', user.id);
+          if (error) throw error;
         } else {
-          await supabase.from('admin_users').upsert(user);
+          const { error } = await supabase.from('admin_users').upsert(user);
+          if (error) throw error;
         }
+        setSyncStatus('synced');
       } catch (e) {
         console.warn("Admin sync failed", e);
+        setSyncStatus('error');
       }
     }
   }, []);
@@ -284,9 +292,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const syncAnalytics = useCallback(async (data: AnalyticsData) => {
     if (supabase) {
       try {
-        await supabase.from('analytics').upsert({ id: 1, ...data });
+        const { error } = await supabase.from('analytics').upsert({ id: 1, ...data });
+        if (error) throw error;
+        setSyncStatus('synced');
       } catch (e) {
         console.warn("Analytics sync failed", e);
+        setSyncStatus('error');
       }
     }
   }, []);
@@ -295,7 +306,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     safeLocalStorage.setItem('detalhes_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Global visitor tracker
   useEffect(() => {
     if (!isInitialLoading) {
       const visited = safeSessionStorage.getItem('detalhes_visited');
@@ -325,12 +335,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setProducts = (newProducts: Product[]) => {
     setProductsState(newProducts);
-    // Note: Global sync for the entire array isn't recommended for performance; 
-    // but individual methods handle p-by-p sync.
   };
   
   const addProduct = (p: Product) => {
-    setProductsState(prev => [...prev, p]);
+    setProductsState(prev => [p, ...prev]);
     syncProduct(p, 'upsert');
   };
 
@@ -352,7 +360,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const normalizedPass = p.trim();
     const inputHash = await hashPassword(normalizedPass);
     
-    // First check in-memory list
     const user = adminUsers.find(user => 
       user.username.trim().toLowerCase() === normalizedUser && 
       user.passwordHash === inputHash
@@ -476,7 +483,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         settings, setSettings, products, setProducts, addProduct, updateProduct, deleteProduct,
         cart, addToCart, removeFromCart, updateCartQuantity, clearCart, 
         analytics, recordEvent, admin, adminUsers, login, logout, updateAdminUser, 
-        createAdminUser, deleteAdminUser, notifications, showNotification, isInitialLoading
+        createAdminUser, deleteAdminUser, notifications, showNotification, isInitialLoading,
+        syncStatus
       },
     },
     children

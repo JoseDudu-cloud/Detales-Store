@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store';
-import { BarChart, Users, ShoppingCart, MessageSquare, TrendingUp, Eye, Package, DollarSign, Radio } from 'lucide-react';
+import { BarChart, Users, ShoppingCart, MessageSquare, TrendingUp, Eye, Package, DollarSign, Radio, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
 const AdminDashboard: React.FC = () => {
-  const { analytics, products, settings, setSettings, showNotification } = useStore();
+  const { analytics, products, settings, setSettings, showNotification, syncStatus } = useStore();
   const [isClient, setIsClient] = useState(false);
 
   // Recharts needs to wait for mount to calculate container size correctly
@@ -31,11 +31,39 @@ const AdminDashboard: React.FC = () => {
     .slice(0, 5)
     .map(p => ({ name: (p.name || '').split(' ')[0], views: p.viewCount || 0 }));
 
+  const SyncIndicator = () => {
+    if (syncStatus === 'synced') {
+      return (
+        <div className="flex items-center space-x-2 bg-green-50 text-green-600 px-3 py-1.5 rounded-full border border-green-100 animate-fade-in">
+          <CheckCircle2 size={12} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Database Synced</span>
+        </div>
+      );
+    }
+    if (syncStatus === 'error') {
+      return (
+        <div className="flex items-center space-x-2 bg-red-50 text-red-600 px-3 py-1.5 rounded-full border border-red-100 animate-fade-in">
+          <AlertCircle size={12} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Sync Error</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center space-x-2 bg-gray-50 text-gray-400 px-3 py-1.5 rounded-full border border-gray-100 animate-fade-in">
+        <RefreshCw size={12} className="animate-spin" />
+        <span className="text-[9px] font-bold uppercase tracking-widest">Checking Sync...</span>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 animate-fade-in w-full max-w-full overflow-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-3xl font-serif">Visão Geral</h1>
+          <div className="flex items-center space-x-4 mb-2">
+            <h1 className="text-3xl font-serif">Visão Geral</h1>
+            <SyncIndicator />
+          </div>
           <p className="text-sm text-gray-500 uppercase tracking-widest mt-1">Como anda sua loja hoje</p>
         </div>
         
